@@ -1,4 +1,4 @@
-package org.example;
+package com.vukhoa23;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -6,7 +6,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Scanner;
 
-public class Client2 {
+public class Client {
     public static void main(String[] args) {
         try {
             Socket socket = new Socket("localhost", 7777);
