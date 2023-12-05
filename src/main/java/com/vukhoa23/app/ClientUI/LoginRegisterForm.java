@@ -4,6 +4,7 @@ import com.vukhoa23.utils.DbUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -96,7 +97,7 @@ public class LoginRegisterForm extends JPanel {
                     connection.close();
                     stmt.close();
                 }
-                catch(SQLException err){
+                catch(SQLException | IOException err){
                     throw new RuntimeException("Database error when login btn event trigger");
                 }
             }));
