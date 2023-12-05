@@ -4,6 +4,8 @@ import com.vukhoa23.app.entity.MessageInfo;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
 import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
@@ -41,9 +43,17 @@ public class HomePage extends JPanel {
         this.add(messageInpContainer);
 
         JPanel messagesContainer = new JPanel();
-        messagesContainer.setBounds(100, 50, 600, 600);
         messagesContainer.setBackground(Color.darkGray);
-        this.add(messagesContainer);
+        messagesContainer.setLayout(new GridLayout(0, 1));
+        JScrollPane messagesContainerScroll = new JScrollPane(messagesContainer);
+        messagesContainerScroll.setBounds(100, 50, 600, 500);
+        this.add(messagesContainerScroll);
+
+        messagesContainerScroll.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
+            public void adjustmentValueChanged(AdjustmentEvent e) {
+                e.getAdjustable().setValue(e.getAdjustable().getMaximum());
+            }
+        });
 
         //create thread that receive message from server
         Thread receiveThread = new Thread(() -> {
@@ -55,12 +65,29 @@ public class HomePage extends JPanel {
                     MessageInfo messageInfo = (MessageInfo) objectInputStream.readObject();
                     System.out.println(messageInfo);
                     if (messageInfo.getMessage().equals("quit")) {
-                        System.exit(0);
                         break;
                     }
+                    JPanel messageContainer = new JPanel();
+                    JLabel username = new JLabel(messageInfo.getUsername()+ ": ");
+                    JTextArea theMessage = new JTextArea(messageInfo.getMessage());
+                    username.setPreferredSize(new Dimension(500, 30));
+                    theMessage.setColumns(50);
+                    theMessage.setRows(3);
+
+                    messageContainer.setPreferredSize(new Dimension(600, 100));
+                    messageContainer.setLayout(new FlowLayout());
+                    messageContainer.add(username);
+                    messageContainer.add(theMessage);
+
+                    messagesContainer.add(messageContainer);
+                    messagesContainer.revalidate();
+                    messagesContainer.repaint();
                 }
+                System.out.println("Reached");
+
             } catch (IOException err) {
                 System.out.println("Error when receive message from client");
+                System.exit(0);
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
@@ -75,11 +102,14 @@ public class HomePage extends JPanel {
                 objectOutputStream.writeObject(messageInfo);
                 //objectOutputStream.flush();
                 //
+
             } catch (IOException err) {
                 {
                     throw new RuntimeException("Error when sending message from client");
                 }
             }
+
+
         });
     }
 }

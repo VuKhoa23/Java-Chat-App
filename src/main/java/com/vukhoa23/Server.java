@@ -38,7 +38,6 @@ public class Server {
                                 OutputStream outputStream = connected.getOutputStream();
                                 // create a data output stream from the output stream so we can send data through it
                                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-
                                 objectOutputStream.writeObject(messageInfo);
                             }
                             catch(IOException err){
