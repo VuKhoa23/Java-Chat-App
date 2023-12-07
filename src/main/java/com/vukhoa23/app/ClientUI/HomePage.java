@@ -51,18 +51,18 @@ public class HomePage extends JPanel {
 
         this.add(messageInpContainer);
 
+        JPanel onlineUsersContainer = new JPanel();
+        onlineUsersContainer.setBounds(0, 50, 200, 500);
+        onlineUsersContainer.setBackground(Color.red);
+        onlineUsersContainer.setLayout(new FlowLayout());
+        this.add(onlineUsersContainer);
+
         JPanel messagesContainer = new JPanel();
         messagesContainer.setBackground(Color.darkGray);
         messagesContainer.setLayout(new GridLayout(0, 1));
         JScrollPane messagesContainerScroll = new JScrollPane(messagesContainer);
         messagesContainerScroll.setBounds(200, 50, 600, 500);
         this.add(messagesContainerScroll);
-
-        JPanel onlineUsersContainer = new JPanel();
-        onlineUsersContainer.setBounds(0, 50, 200, 500);
-        onlineUsersContainer.setBackground(Color.red);
-        onlineUsersContainer.setLayout(new FlowLayout());
-        this.add(onlineUsersContainer);
 
         messagesContainerScroll.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
             public void adjustmentValueChanged(AdjustmentEvent e) {
@@ -113,7 +113,6 @@ public class HomePage extends JPanel {
         });
         receiveThread.start();
 
-
         sendBtn.addActionListener((e) -> {
             try {
                 String theString = messageInp.getText();
@@ -138,7 +137,7 @@ public class HomePage extends JPanel {
         Connection connection = DbUtils.getConnection();
         PreparedStatement stmt = connection.prepareStatement("SELECT username FROM account");
         ResultSet rs = stmt.executeQuery();
-        while(rs.next()){
+        while (rs.next()) {
             allUsers.add(rs.getString(1));
         }
 
@@ -147,18 +146,20 @@ public class HomePage extends JPanel {
             onlineUsers.add(onlineUserInfo.getUsername());
         }
 
-        allUsers.forEach(user->{
-            if(onlineUsers.contains(user)){
+        for (String user : allUsers) {
+            if (user.equals(ClientFrame.username)) {
+                continue;
+            }
+            if (onlineUsers.contains(user)) {
                 JButton online = new JButton(user + " - online");
                 online.setPreferredSize(new Dimension(190, 30));
                 container.add(online);
-            }
-            else{
+            } else {
                 JButton online = new JButton(user);
                 online.setPreferredSize(new Dimension(190, 30));
                 container.add(online);
             }
-        });
+        }
         container.revalidate();
         container.repaint();
     }
