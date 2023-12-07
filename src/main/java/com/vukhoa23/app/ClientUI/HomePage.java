@@ -1,6 +1,7 @@
 package com.vukhoa23.app.ClientUI;
 
 import com.vukhoa23.app.entity.MessageInfo;
+import com.vukhoa23.app.entity.OnlineUserInfo;
 
 import javax.swing.*;
 import java.awt.*;
@@ -8,10 +9,12 @@ import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.io.*;
 import java.net.Socket;
-import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class HomePage extends JPanel {
-    HomePage() throws IOException {
+    HomePage(String theUsername) throws IOException {
         // connect to server
         Socket socket = new Socket("localhost", 7777);
         System.out.println("Connected!");
@@ -20,6 +23,7 @@ public class HomePage extends JPanel {
         // create a data output stream from the output stream so we can send data through it
         //DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
         ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+        objectOutputStream.writeObject(theUsername);
 
         this.setLayout(null);
         this.setBounds(0, 0, 800, 750);
@@ -62,28 +66,33 @@ public class HomePage extends JPanel {
                     // create a DataInputStream so we can read data from it.
                     InputStream inputStream = socket.getInputStream();
                     ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
-                    MessageInfo messageInfo = (MessageInfo) objectInputStream.readObject();
-                    System.out.println(messageInfo);
-                    if (messageInfo.getMessage().equals("quit")) {
-                        break;
+                    Object object = (Object) objectInputStream.readObject();
+                    if(object instanceof MessageInfo){
+                        MessageInfo messageInfo = (MessageInfo) object;
+                        if (messageInfo.getMessage().equals("quit")) {
+                            break;
+                        }
+                        JPanel messageContainer = new JPanel();
+                        JLabel username = new JLabel(messageInfo.getUsername()+ " - " + messageInfo.getCreatedDate());
+                        JTextArea theMessage = new JTextArea(messageInfo.getMessage());
+                        username.setPreferredSize(new Dimension(500, 30));
+                        theMessage.setColumns(50);
+                        theMessage.setRows(3);
+
+                        messageContainer.setPreferredSize(new Dimension(600, 100));
+                        messageContainer.setLayout(new FlowLayout());
+                        messageContainer.add(username);
+                        messageContainer.add(theMessage);
+
+                        messagesContainer.add(messageContainer);
+                        messagesContainer.revalidate();
+                        messagesContainer.repaint();
                     }
-                    JPanel messageContainer = new JPanel();
-                    JLabel username = new JLabel(messageInfo.getUsername()+ ": ");
-                    JTextArea theMessage = new JTextArea(messageInfo.getMessage());
-                    username.setPreferredSize(new Dimension(500, 30));
-                    theMessage.setColumns(50);
-                    theMessage.setRows(3);
-
-                    messageContainer.setPreferredSize(new Dimension(600, 100));
-                    messageContainer.setLayout(new FlowLayout());
-                    messageContainer.add(username);
-                    messageContainer.add(theMessage);
-
-                    messagesContainer.add(messageContainer);
-                    messagesContainer.revalidate();
-                    messagesContainer.repaint();
+                    else if(object instanceof List){
+                        ArrayList<OnlineUserInfo> connectedUsers = (ArrayList<OnlineUserInfo>) object;
+                        System.out.println(connectedUsers);
+                    }
                 }
-                System.out.println("Reached");
 
             } catch (IOException err) {
                 System.out.println("Error when receive message from client");
@@ -94,22 +103,18 @@ public class HomePage extends JPanel {
         });
         receiveThread.start();
 
+
         sendBtn.addActionListener((e) -> {
             try {
                 String theString = messageInp.getText();
-                MessageInfo messageInfo = new MessageInfo(ClientFrame.username, theString);
+                MessageInfo messageInfo = new MessageInfo(ClientFrame.username, theString, new Date());
                 // write the message we want to send
                 objectOutputStream.writeObject(messageInfo);
                 //objectOutputStream.flush();
-                //
 
             } catch (IOException err) {
-                {
                     throw new RuntimeException("Error when sending message from client");
-                }
             }
-
-
         });
     }
 }

@@ -25,7 +25,7 @@ public class ClientFrame extends JFrame {
 
     public static void loggedInSuccess(String theUsername) throws IOException {
         isLoggedIn = true;
-        setBody(new HomePage());
+        setBody(new HomePage(theUsername));
         username = theUsername;
         Header.setHeader("Logged in as " + username);
     }
