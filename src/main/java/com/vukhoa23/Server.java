@@ -35,12 +35,10 @@ public class Server {
                     // send data of connected users
                     connectedSocket.forEach((connected)->{
                         try {
-                            System.out.println("Reached here");
                             OutputStream outputStream = connected.getSocket().getOutputStream();
                             // create a data output stream from the output stream so we can send data through it
                             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
                             objectOutputStream.writeObject(onlineUserInfos);
-                            objectOutputStream.reset();
                         }
                         catch(IOException err){
                             err.printStackTrace();
@@ -58,6 +56,18 @@ public class Server {
                             connectedSocket.remove(socketInfo);
                             onlineUserInfos.remove(userInfo);
                             socket.close();
+                            connectedSocket.forEach((connected)->{
+                                try {
+                                    OutputStream outputStream = connected.getSocket().getOutputStream();
+                                    // create a data output stream from the output stream so we can send data through it
+                                    ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                    objectOutputStream.writeObject(onlineUserInfos);
+                                }
+                                catch(IOException err){
+                                    err.printStackTrace();
+                                    throw new RuntimeException("Error when send messages to connected clients");
+                                }
+                            });
                             break;
                         }
                         connectedSocket.forEach((connected)->{
