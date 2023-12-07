@@ -107,17 +107,23 @@ public class HomePage extends JPanel {
                             JOptionPane.ERROR_MESSAGE);
                 } else {
                     String theString = messageInp.getText();
-                    MessageInfo messageInfo = new MessageInfo(ClientFrame.username, ClientFrame.currentReceiver, theString, new Date().toString());
-                    // connect to db and save the message
-                    Connection connection = DbUtils.getConnection();
-                    PreparedStatement stmt = connection.prepareStatement(
-                            "INSERT INTO chat_history(sender, receiver, content, createdDate) values(?, ?, ?, ?)"
-                    );
-                    stmt.setString(1, messageInfo.getUsername());
-                    stmt.setString(2, messageInfo.getReceiver());
-                    stmt.setString(3, messageInfo.getMessage());
-                    stmt.setString(4, messageInfo.getCreatedDate().toString());
-                    stmt.executeUpdate();
+                    MessageInfo messageInfo = new MessageInfo(
+                            ClientFrame.username,
+                            ClientFrame.currentReceiver,
+                            theString, new Date().toString());
+                    if (!theString.equals("quit")) {
+                        // connect to db and save the message
+                        Connection connection = DbUtils.getConnection();
+                        PreparedStatement stmt = connection.prepareStatement(
+                                "INSERT INTO chat_history(sender, receiver, content, createdDate) values(?, ?, ?, ?)"
+                        );
+                        stmt.setString(1, messageInfo.getUsername());
+                        stmt.setString(2, messageInfo.getReceiver());
+                        stmt.setString(3, messageInfo.getMessage());
+                        stmt.setString(4, messageInfo.getCreatedDate().toString());
+                        stmt.executeUpdate();
+                    }
+
                     // write the message we want to send
                     objectOutputStream.writeObject(messageInfo);
                     // populate messages
@@ -169,7 +175,7 @@ public class HomePage extends JPanel {
         messagesContainer.repaint();
         messagesContainerScroll.validate();
         JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
-        vertical.setValue( vertical.getMaximum() );
+        vertical.setValue(vertical.getMaximum());
 
         // scroll to bottom when new messages are populated
 
@@ -204,7 +210,6 @@ public class HomePage extends JPanel {
                 container.add(online);
                 online.addActionListener(e -> {
                     ClientFrame.currentReceiver = user;
-                    System.out.println(ClientFrame.currentReceiver);
                     try {
                         populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
                     } catch (SQLException ex) {
@@ -212,12 +217,11 @@ public class HomePage extends JPanel {
                     }
                 });
             } else {
-                JButton online = new JButton(user);
+                JButton online = new JButton(user + " - offline");
                 online.setPreferredSize(new Dimension(190, 30));
                 container.add(online);
                 online.addActionListener(e -> {
                     ClientFrame.currentReceiver = user;
-                    System.out.println(ClientFrame.currentReceiver);
                     try {
                         populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
                     } catch (SQLException ex) {
