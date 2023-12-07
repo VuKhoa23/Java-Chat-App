@@ -49,7 +49,6 @@ public class Server {
 
                         while (true) {
                             // get the input stream from the connected socket
-
                             // read the message from the socket
                             MessageInfo messageInfo = (MessageInfo) objectInputStream.readObject();
                             System.out.println(messageInfo);
