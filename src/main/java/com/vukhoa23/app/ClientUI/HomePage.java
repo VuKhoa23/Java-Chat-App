@@ -20,6 +20,8 @@ import java.util.List;
 
 public class HomePage extends JPanel {
     JPanel messagesContainer = new JPanel();
+    JScrollPane messagesContainerScroll = new JScrollPane(messagesContainer);
+
 
     HomePage(String theUsername) throws IOException {
         // connect to server
@@ -61,7 +63,6 @@ public class HomePage extends JPanel {
 
         messagesContainer.setBackground(Color.darkGray);
         messagesContainer.setLayout(new GridLayout(0, 1));
-        JScrollPane messagesContainerScroll = new JScrollPane(messagesContainer);
         messagesContainerScroll.setBounds(200, 50, 600, 500);
         this.add(messagesContainerScroll);
 
@@ -78,8 +79,8 @@ public class HomePage extends JPanel {
                         if (messageInfo.getMessage().equals("quit")) {
                             break;
                         }
-                        if (messageInfo.getReceiver().equals(ClientFrame.username)
-                                && ClientFrame.currentReceiver.equals(messageInfo.getUsername())){
+                        if (ClientFrame.currentReceiver != null && (messageInfo.getReceiver().equals(ClientFrame.username)
+                                && ClientFrame.currentReceiver.equals(messageInfo.getUsername()))) {
                             populateMessageToContainer(messageInfo.getUsername(), messageInfo.getReceiver());
                         }
                     } else if (object instanceof List) {
@@ -119,6 +120,8 @@ public class HomePage extends JPanel {
                     stmt.executeUpdate();
                     // write the message we want to send
                     objectOutputStream.writeObject(messageInfo);
+                    // populate messages
+                    populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
                     //objectOutputStream.flush();
                 }
 
@@ -144,7 +147,8 @@ public class HomePage extends JPanel {
 
         ResultSet rs = preparedStatement.executeQuery();
         while (rs.next()) {
-            MessageInfo messageInfo = new MessageInfo(rs.getString("sender"),
+            MessageInfo messageInfo = new MessageInfo(
+                    rs.getString("sender"),
                     rs.getString("receiver"),
                     rs.getString("content"),
                     rs.getString("createdDate"));
@@ -161,8 +165,13 @@ public class HomePage extends JPanel {
             messageContainer.add(theMessage);
             messagesContainer.add(messageContainer);
         }
-        messagesContainer.revalidate();
+        messagesContainer.validate();
         messagesContainer.repaint();
+        messagesContainerScroll.validate();
+        JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
+        vertical.setValue( vertical.getMaximum() );
+
+        // scroll to bottom when new messages are populated
 
     }
 
