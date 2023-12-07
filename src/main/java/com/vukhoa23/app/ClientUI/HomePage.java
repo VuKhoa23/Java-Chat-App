@@ -103,7 +103,7 @@ public class HomePage extends JPanel {
                         populateOnlineUsers(connectedUsers, onlineUsersContainer);
                     }
                 }
-
+            //
             } catch (IOException | SQLException err) {
                 System.out.println("Error when receive message from client");
                 System.exit(0);
