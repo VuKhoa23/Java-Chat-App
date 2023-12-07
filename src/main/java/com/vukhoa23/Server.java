@@ -27,61 +27,77 @@ public class Server {
                     InputStream inputStream = socket.getInputStream();
                     // create a DataInputStream so we can read data from it.
                     ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
-                    String username = (String) objectInputStream.readObject();
-                    SocketInfo socketInfo = new SocketInfo(socket, username);
-                    connectedSocket.add(socketInfo);
-                    OnlineUserInfo userInfo = new OnlineUserInfo(socket.getPort(), username);
-                    onlineUserInfos.add(userInfo);
-                    // send data of connected users
-                    connectedSocket.forEach((connected)->{
-                        try {
-                            OutputStream outputStream = connected.getSocket().getOutputStream();
-                            // create a data output stream from the output stream so we can send data through it
-                            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-                            objectOutputStream.writeObject(onlineUserInfos);
-                        }
-                        catch(IOException err){
-                            err.printStackTrace();
-                            throw new RuntimeException("Error when send messages to connected clients");
-                        }
-                    });
-                    while (true) {
-                        // get the input stream from the connected socket
-
-                        // read the message from the socket
-                        MessageInfo messageInfo = (MessageInfo) objectInputStream.readObject();
-                        System.out.println(messageInfo);
-                        if (messageInfo.getMessage().equals("quit")) {
-                            System.out.println(messageInfo.getUsername() + " disconnected");
-                            connectedSocket.remove(socketInfo);
-                            onlineUserInfos.remove(userInfo);
-                            socket.close();
-                            connectedSocket.forEach((connected)->{
-                                try {
-                                    OutputStream outputStream = connected.getSocket().getOutputStream();
-                                    // create a data output stream from the output stream so we can send data through it
-                                    ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-                                    objectOutputStream.writeObject(onlineUserInfos);
-                                }
-                                catch(IOException err){
-                                    err.printStackTrace();
-                                    throw new RuntimeException("Error when send messages to connected clients");
-                                }
-                            });
-                            break;
-                        }
-                        connectedSocket.forEach((connected)->{
+                    Object object = (Object) objectInputStream.readObject();
+                    if (object instanceof String) {
+                        String username = (String) object;
+                        SocketInfo socketInfo = new SocketInfo(socket, username);
+                        connectedSocket.add(socketInfo);
+                        OnlineUserInfo userInfo = new OnlineUserInfo(socket.getPort(), username);
+                        onlineUserInfos.add(userInfo);
+                        // send data of connected users
+                        connectedSocket.forEach((connected) -> {
                             try {
                                 OutputStream outputStream = connected.getSocket().getOutputStream();
                                 // create a data output stream from the output stream so we can send data through it
                                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-                                objectOutputStream.writeObject(messageInfo);
-                            }
-                            catch(IOException err){
+                                objectOutputStream.writeObject(onlineUserInfos);
+                            } catch (IOException err) {
+                                err.printStackTrace();
                                 throw new RuntimeException("Error when send messages to connected clients");
                             }
                         });
-                        System.out.println(connectedSocket);
+
+                        while (true) {
+                            // get the input stream from the connected socket
+
+                            // read the message from the socket
+                            MessageInfo messageInfo = (MessageInfo) objectInputStream.readObject();
+                            System.out.println(messageInfo);
+                            if (messageInfo.getMessage().equals("quit")) {
+                                System.out.println(messageInfo.getUsername() + " disconnected");
+                                connectedSocket.remove(socketInfo);
+                                onlineUserInfos.remove(userInfo);
+                                socket.close();
+                                connectedSocket.forEach((connected) -> {
+                                    try {
+                                        OutputStream outputStream = connected.getSocket().getOutputStream();
+                                        // create a data output stream from the output stream so we can send data through it
+                                        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                        objectOutputStream.writeObject(onlineUserInfos);
+                                    } catch (IOException err) {
+                                        err.printStackTrace();
+                                        throw new RuntimeException("Error when send messages to connected clients");
+                                    }
+                                });
+                                break;
+                            }
+                            connectedSocket.forEach((connected) -> {
+                                try {
+                                    OutputStream outputStream = connected.getSocket().getOutputStream();
+                                    // create a data output stream from the output stream so we can send data through it
+                                    ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                    objectOutputStream.writeObject(messageInfo);
+                                } catch (IOException err) {
+                                    throw new RuntimeException("Error when send messages to connected clients");
+                                }
+                            });
+                            System.out.println(connectedSocket);
+                        }
+                    }
+                    else{
+                        Integer option = (Integer) object;
+                        System.out.println(option);
+                        // return list of online users
+                        if(option == 1){
+                            OutputStream outputStream = socket.getOutputStream();
+                            // create a data output stream from the output stream so we can send data through it
+                            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                            objectOutputStream.writeObject(onlineUserInfos);
+
+                            objectOutputStream.close();
+                            objectInputStream.close();
+                            socket.close();
+                        }
                     }
                 } catch (IOException err) {
                     System.out.println(err);

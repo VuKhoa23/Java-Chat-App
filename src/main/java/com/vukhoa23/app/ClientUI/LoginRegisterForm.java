@@ -1,14 +1,17 @@
 package com.vukhoa23.app.ClientUI;
 
+import com.vukhoa23.app.entity.OnlineUserInfo;
 import com.vukhoa23.utils.DbUtils;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.IOException;
+import java.io.*;
+import java.net.Socket;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 public class LoginRegisterForm extends JPanel {
     public class LoginForm extends JPanel {
@@ -53,7 +56,7 @@ public class LoginRegisterForm extends JPanel {
             btnContainer.add(loginBtn);
             btnContainer.add(registerBtn);
             this.add(btnContainer);
-            this.setBounds(240, 200, 300, 190);
+            this.setBounds(340, 200, 300, 190);
 
             loginBtn.addActionListener((e -> {
                 try {
@@ -86,12 +89,42 @@ public class LoginRegisterForm extends JPanel {
                                     JOptionPane.ERROR_MESSAGE);
                         }
                         else{
-                            JOptionPane.showMessageDialog(
-                                    this,
-                                    "Login succeed",
-                                    "Alert",
-                                    JOptionPane.INFORMATION_MESSAGE);
-                            ClientFrame.loggedInSuccess(username);
+                            Socket socket = new Socket("localhost", 7777);
+                            System.out.println("Connected!");
+                            OutputStream outputStream = socket.getOutputStream();
+                            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                            Integer option = 1;
+                            objectOutputStream.writeObject(option);
+
+                            InputStream inputStream = socket.getInputStream();
+                            // create a DataInputStream so we can read data from it.
+                            ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
+                            ArrayList<OnlineUserInfo> onlineUserInfos = (ArrayList<OnlineUserInfo>) objectInputStream.readObject();
+
+                            boolean isLoggedIn = false;
+                            System.out.println(onlineUserInfos);
+                            for (OnlineUserInfo onlineUserInfo : onlineUserInfos) {
+                                System.out.println(onlineUserInfo.getUsername());
+                                if(username.equals(onlineUserInfo.getUsername())){
+                                    isLoggedIn = true;
+                                    break;
+                                }
+                            }
+                            if(!isLoggedIn){
+                                JOptionPane.showMessageDialog(
+                                        this,
+                                        "Login succeed",
+                                        "Alert",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                ClientFrame.loggedInSuccess(username);
+                            }
+                            else{
+                                JOptionPane.showMessageDialog(
+                                        this,
+                                        "This account is already logged in",
+                                        "Alert",
+                                        JOptionPane.ERROR_MESSAGE);
+                            }
                         }
                     }
                     connection.close();
@@ -99,6 +132,8 @@ public class LoginRegisterForm extends JPanel {
                 }
                 catch(SQLException | IOException err){
                     throw new RuntimeException("Database error when login btn event trigger");
+                } catch (ClassNotFoundException ex) {
+                    throw new RuntimeException(ex);
                 }
             }));
 
@@ -147,7 +182,7 @@ public class LoginRegisterForm extends JPanel {
     }
 
     LoginRegisterForm() throws SQLException {
-        this.setBounds(0, 0, 800, 750);
+        this.setBounds(0, 0, 1000, 750);
         this.setLayout(null);
         this.setBackground(Color.lightGray);
 

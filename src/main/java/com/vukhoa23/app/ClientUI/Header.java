@@ -7,7 +7,7 @@ public class Header extends JPanel {
     public static JLabel label = new JLabel("Not logged in");
 
     public Header(){
-        this.setPreferredSize(new Dimension(600, 50));
+        this.setPreferredSize(new Dimension(1000, 50));
         this.setBackground(Color.black);
         this.setLayout(new BorderLayout());
         label.setFont(new Font("SansSerif",Font.BOLD, 30));

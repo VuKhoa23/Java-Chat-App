@@ -17,7 +17,7 @@ public class ClientFrame extends JFrame {
         this.add(body, BorderLayout.CENTER);
         setBody(new LoginRegisterForm());
 
-        this.setSize(new Dimension(800, 800));
+        this.setSize(new Dimension(1000, 800));
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true);
         this.setResizable(false);

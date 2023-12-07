@@ -2,6 +2,7 @@ package com.vukhoa23.app.ClientUI;
 
 import com.vukhoa23.app.entity.MessageInfo;
 import com.vukhoa23.app.entity.OnlineUserInfo;
+import com.vukhoa23.utils.DbUtils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -9,6 +10,10 @@ import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.io.*;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -26,7 +31,7 @@ public class HomePage extends JPanel {
         objectOutputStream.writeObject(theUsername);
 
         this.setLayout(null);
-        this.setBounds(0, 0, 800, 750);
+        this.setBounds(0, 0, 1000, 750);
         this.setBackground(Color.gray);
 
         JTextArea messageInp = new JTextArea();
@@ -40,7 +45,7 @@ public class HomePage extends JPanel {
 
         JPanel messageInpContainer = new JPanel();
         messageInpContainer.setLayout(new FlowLayout());
-        messageInpContainer.setBounds(100, 600, 600, 90);
+        messageInpContainer.setBounds(200, 600, 600, 90);
         messageInpContainer.add(messageInpScroll);
         messageInpContainer.add(sendBtn);
 
@@ -50,8 +55,14 @@ public class HomePage extends JPanel {
         messagesContainer.setBackground(Color.darkGray);
         messagesContainer.setLayout(new GridLayout(0, 1));
         JScrollPane messagesContainerScroll = new JScrollPane(messagesContainer);
-        messagesContainerScroll.setBounds(100, 50, 600, 500);
+        messagesContainerScroll.setBounds(200, 50, 600, 500);
         this.add(messagesContainerScroll);
+
+        JPanel onlineUsersContainer = new JPanel();
+        onlineUsersContainer.setBounds(0, 50, 200, 500);
+        onlineUsersContainer.setBackground(Color.red);
+        onlineUsersContainer.setLayout(new FlowLayout());
+        this.add(onlineUsersContainer);
 
         messagesContainerScroll.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
             public void adjustmentValueChanged(AdjustmentEvent e) {
@@ -67,13 +78,13 @@ public class HomePage extends JPanel {
                     InputStream inputStream = socket.getInputStream();
                     ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
                     Object object = (Object) objectInputStream.readObject();
-                    if(object instanceof MessageInfo){
+                    if (object instanceof MessageInfo) {
                         MessageInfo messageInfo = (MessageInfo) object;
                         if (messageInfo.getMessage().equals("quit")) {
                             break;
                         }
                         JPanel messageContainer = new JPanel();
-                        JLabel username = new JLabel(messageInfo.getUsername()+ " - " + messageInfo.getCreatedDate());
+                        JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
                         JTextArea theMessage = new JTextArea(messageInfo.getMessage());
                         username.setPreferredSize(new Dimension(500, 30));
                         theMessage.setColumns(50);
@@ -87,14 +98,13 @@ public class HomePage extends JPanel {
                         messagesContainer.add(messageContainer);
                         messagesContainer.revalidate();
                         messagesContainer.repaint();
-                    }
-                    else if(object instanceof List){
+                    } else if (object instanceof List) {
                         ArrayList<OnlineUserInfo> connectedUsers = (ArrayList<OnlineUserInfo>) object;
-                        System.out.println(connectedUsers);
+                        populateOnlineUsers(connectedUsers, onlineUsersContainer);
                     }
                 }
 
-            } catch (IOException err) {
+            } catch (IOException | SQLException err) {
                 System.out.println("Error when receive message from client");
                 System.exit(0);
             } catch (ClassNotFoundException e) {
@@ -113,8 +123,43 @@ public class HomePage extends JPanel {
                 //objectOutputStream.flush();
 
             } catch (IOException err) {
-                    throw new RuntimeException("Error when sending message from client");
+                throw new RuntimeException("Error when sending message from client");
             }
         });
+    }
+
+    public void populateOnlineUsers(ArrayList<OnlineUserInfo> onlineUserInfos, JPanel container) throws SQLException {
+        container.removeAll();
+        JLabel label = new JLabel("Users");
+        container.add(label);
+
+        List<String> allUsers = new ArrayList<>();
+
+        Connection connection = DbUtils.getConnection();
+        PreparedStatement stmt = connection.prepareStatement("SELECT username FROM account");
+        ResultSet rs = stmt.executeQuery();
+        while(rs.next()){
+            allUsers.add(rs.getString(1));
+        }
+
+        List<String> onlineUsers = new ArrayList<>();
+        for (OnlineUserInfo onlineUserInfo : onlineUserInfos) {
+            onlineUsers.add(onlineUserInfo.getUsername());
+        }
+
+        allUsers.forEach(user->{
+            if(onlineUsers.contains(user)){
+                JButton online = new JButton(user + " - online");
+                online.setPreferredSize(new Dimension(190, 30));
+                container.add(online);
+            }
+            else{
+                JButton online = new JButton(user);
+                online.setPreferredSize(new Dimension(190, 30));
+                container.add(online);
+            }
+        });
+        container.revalidate();
+        container.repaint();
     }
 }
