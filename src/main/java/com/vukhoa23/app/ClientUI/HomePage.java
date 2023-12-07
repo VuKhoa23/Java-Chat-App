@@ -19,6 +19,10 @@ import java.util.Date;
 import java.util.List;
 
 public class HomePage extends JPanel {
+    JPanel messagesContainer = new JPanel();
+    JScrollPane messagesContainerScroll = new JScrollPane(messagesContainer);
+
+
     HomePage(String theUsername) throws IOException {
         // connect to server
         Socket socket = new Socket("localhost", 7777);
@@ -57,18 +61,10 @@ public class HomePage extends JPanel {
         onlineUsersContainer.setLayout(new FlowLayout());
         this.add(onlineUsersContainer);
 
-        JPanel messagesContainer = new JPanel();
         messagesContainer.setBackground(Color.darkGray);
         messagesContainer.setLayout(new GridLayout(0, 1));
-        JScrollPane messagesContainerScroll = new JScrollPane(messagesContainer);
         messagesContainerScroll.setBounds(200, 50, 600, 500);
         this.add(messagesContainerScroll);
-
-        messagesContainerScroll.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
-            public void adjustmentValueChanged(AdjustmentEvent e) {
-                e.getAdjustable().setValue(e.getAdjustable().getMaximum());
-            }
-        });
 
         //create thread that receive message from server
         Thread receiveThread = new Thread(() -> {
@@ -83,27 +79,15 @@ public class HomePage extends JPanel {
                         if (messageInfo.getMessage().equals("quit")) {
                             break;
                         }
-                        JPanel messageContainer = new JPanel();
-                        JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
-                        JTextArea theMessage = new JTextArea(messageInfo.getMessage());
-                        username.setPreferredSize(new Dimension(500, 30));
-                        theMessage.setColumns(50);
-                        theMessage.setRows(3);
-
-                        messageContainer.setPreferredSize(new Dimension(600, 100));
-                        messageContainer.setLayout(new FlowLayout());
-                        messageContainer.add(username);
-                        messageContainer.add(theMessage);
-
-                        messagesContainer.add(messageContainer);
-                        messagesContainer.revalidate();
-                        messagesContainer.repaint();
+                        if (ClientFrame.currentReceiver != null && (messageInfo.getReceiver().equals(ClientFrame.username)
+                                && ClientFrame.currentReceiver.equals(messageInfo.getUsername()))) {
+                            populateMessageToContainer(messageInfo.getUsername(), messageInfo.getReceiver());
+                        }
                     } else if (object instanceof List) {
                         ArrayList<OnlineUserInfo> connectedUsers = (ArrayList<OnlineUserInfo>) object;
                         populateOnlineUsers(connectedUsers, onlineUsersContainer);
                     }
                 }
-
             } catch (IOException | SQLException err) {
                 System.out.println("Error when receive message from client");
                 System.exit(0);
@@ -115,16 +99,86 @@ public class HomePage extends JPanel {
 
         sendBtn.addActionListener((e) -> {
             try {
-                String theString = messageInp.getText();
-                MessageInfo messageInfo = new MessageInfo(ClientFrame.username, theString, new Date());
-                // write the message we want to send
-                objectOutputStream.writeObject(messageInfo);
-                //objectOutputStream.flush();
+                if (ClientFrame.currentReceiver == null) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Select a user to chat with",
+                            "Alert",
+                            JOptionPane.ERROR_MESSAGE);
+                } else {
+                    String theString = messageInp.getText();
+                    MessageInfo messageInfo = new MessageInfo(
+                            ClientFrame.username,
+                            ClientFrame.currentReceiver,
+                            theString, new Date().toString());
+                    if (!theString.equals("quit")) {
+                        // connect to db and save the message
+                        Connection connection = DbUtils.getConnection();
+                        PreparedStatement stmt = connection.prepareStatement(
+                                "INSERT INTO chat_history(sender, receiver, content, createdDate) values(?, ?, ?, ?)"
+                        );
+                        stmt.setString(1, messageInfo.getUsername());
+                        stmt.setString(2, messageInfo.getReceiver());
+                        stmt.setString(3, messageInfo.getMessage());
+                        stmt.setString(4, messageInfo.getCreatedDate().toString());
+                        stmt.executeUpdate();
+                    }
+
+                    // write the message we want to send
+                    objectOutputStream.writeObject(messageInfo);
+                    // populate messages
+                    populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
+                    //objectOutputStream.flush();
+                }
+
 
             } catch (IOException err) {
                 throw new RuntimeException("Error when sending message from client");
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
             }
         });
+    }
+
+    public void populateMessageToContainer(String sender, String receiver) throws SQLException {
+        messagesContainer.removeAll();
+        Connection connection = DbUtils.getConnection();
+        PreparedStatement preparedStatement = connection.prepareStatement(
+                "SELECT * FROM chat_history WHERE (sender=? AND receiver=?) OR (receiver=? AND sender=?)"
+        );
+        preparedStatement.setString(1, sender);
+        preparedStatement.setString(2, receiver);
+        preparedStatement.setString(3, sender);
+        preparedStatement.setString(4, receiver);
+
+        ResultSet rs = preparedStatement.executeQuery();
+        while (rs.next()) {
+            MessageInfo messageInfo = new MessageInfo(
+                    rs.getString("sender"),
+                    rs.getString("receiver"),
+                    rs.getString("content"),
+                    rs.getString("createdDate"));
+            JPanel messageContainer = new JPanel();
+            JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
+            JTextArea theMessage = new JTextArea(messageInfo.getMessage());
+            username.setPreferredSize(new Dimension(500, 30));
+            theMessage.setColumns(50);
+            theMessage.setRows(3);
+
+            messageContainer.setPreferredSize(new Dimension(600, 100));
+            messageContainer.setLayout(new FlowLayout());
+            messageContainer.add(username);
+            messageContainer.add(theMessage);
+            messagesContainer.add(messageContainer);
+        }
+        messagesContainer.validate();
+        messagesContainer.repaint();
+        messagesContainerScroll.validate();
+        JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
+        vertical.setValue(vertical.getMaximum());
+
+        // scroll to bottom when new messages are populated
+
     }
 
     public void populateOnlineUsers(ArrayList<OnlineUserInfo> onlineUserInfos, JPanel container) throws SQLException {
@@ -154,10 +208,26 @@ public class HomePage extends JPanel {
                 JButton online = new JButton(user + " - online");
                 online.setPreferredSize(new Dimension(190, 30));
                 container.add(online);
+                online.addActionListener(e -> {
+                    ClientFrame.currentReceiver = user;
+                    try {
+                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
+                    } catch (SQLException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                });
             } else {
-                JButton online = new JButton(user);
+                JButton online = new JButton(user + " - offline");
                 online.setPreferredSize(new Dimension(190, 30));
                 container.add(online);
+                online.addActionListener(e -> {
+                    ClientFrame.currentReceiver = user;
+                    try {
+                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
+                    } catch (SQLException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                });
             }
         }
         container.revalidate();

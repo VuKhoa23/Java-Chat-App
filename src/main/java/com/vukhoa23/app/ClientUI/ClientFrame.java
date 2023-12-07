@@ -9,6 +9,7 @@ public class ClientFrame extends JFrame {
     private static JPanel body = new JPanel();
     public static boolean isLoggedIn = false;
     public static String username = null;
+    public static String currentReceiver = null;
     public ClientFrame() throws SQLException {
         this.setLayout(new BorderLayout());
         body.setLayout(null);
