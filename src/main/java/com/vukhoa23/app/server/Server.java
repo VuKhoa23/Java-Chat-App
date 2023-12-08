@@ -1,4 +1,4 @@
-package com.vukhoa23.app.client;
+package com.vukhoa23.app.server;
 
 import com.vukhoa23.app.client.entity.*;
 
