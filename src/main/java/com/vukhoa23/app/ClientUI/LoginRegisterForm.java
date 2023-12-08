@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -73,22 +74,20 @@ public class LoginRegisterForm extends JPanel {
                         username = rs.getString(1);
                         password = rs.getString(2);
                     }
-                    if(username == null){
+                    if (username == null) {
                         JOptionPane.showMessageDialog(
                                 this,
                                 "Account doesn't exists",
                                 "Alert",
                                 JOptionPane.ERROR_MESSAGE);
-                    }
-                    else{
-                        if(!password.equals(inputPassword)){
+                    } else {
+                        if (!password.equals(inputPassword)) {
                             JOptionPane.showMessageDialog(
                                     this,
                                     "Wrong password",
                                     "Alert",
                                     JOptionPane.ERROR_MESSAGE);
-                        }
-                        else{
+                        } else {
                             Socket socket = new Socket("localhost", 7777);
                             System.out.println("Connected!");
                             OutputStream outputStream = socket.getOutputStream();
@@ -105,20 +104,19 @@ public class LoginRegisterForm extends JPanel {
                             System.out.println(onlineUserInfos);
                             for (OnlineUserInfo onlineUserInfo : onlineUserInfos) {
                                 System.out.println(onlineUserInfo.getUsername());
-                                if(username.equals(onlineUserInfo.getUsername())){
+                                if (username.equals(onlineUserInfo.getUsername())) {
                                     isLoggedIn = true;
                                     break;
                                 }
                             }
-                            if(!isLoggedIn){
+                            if (!isLoggedIn) {
                                 JOptionPane.showMessageDialog(
                                         this,
                                         "Login succeed",
                                         "Alert",
                                         JOptionPane.INFORMATION_MESSAGE);
                                 ClientFrame.loggedInSuccess(username);
-                            }
-                            else{
+                            } else {
                                 JOptionPane.showMessageDialog(
                                         this,
                                         "This account is already logged in",
@@ -129,8 +127,7 @@ public class LoginRegisterForm extends JPanel {
                     }
                     connection.close();
                     stmt.close();
-                }
-                catch(SQLException | IOException err){
+                } catch (SQLException | IOException err) {
                     throw new RuntimeException("Database error when login btn event trigger");
                 } catch (ClassNotFoundException ex) {
                     throw new RuntimeException(ex);
@@ -152,14 +149,13 @@ public class LoginRegisterForm extends JPanel {
                         username = rs.getString(1);
                         password = rs.getString(2);
                     }
-                    if(!(username == null)){
+                    if (!(username == null)) {
                         JOptionPane.showMessageDialog(
                                 this,
                                 "Account already exists",
                                 "Alert",
                                 JOptionPane.ERROR_MESSAGE);
-                    }
-                    else{
+                    } else {
                         String createQuery = "INSERT INTO ACCOUNT VALUES(?, ?)";
                         PreparedStatement createStmt = connection.prepareStatement(createQuery);
                         createStmt.setString(1, inputUsername);
@@ -170,11 +166,23 @@ public class LoginRegisterForm extends JPanel {
                                 "Account created successfully",
                                 "Alert",
                                 JOptionPane.INFORMATION_MESSAGE);
+                        try {
+                            Socket socket = new Socket("localhost", 7777);
+                            System.out.println("Connected!");
+                            OutputStream outputStream = socket.getOutputStream();
+                            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                            Integer option = 2;
+                            objectOutputStream.writeObject(option);
+                        } catch (UnknownHostException ex) {
+                            throw new RuntimeException(ex);
+                        } catch (IOException ex) {
+                            throw new RuntimeException(ex);
+                        }
+
                     }
                     connection.close();
                     stmt.close();
-                }
-                catch(SQLException err){
+                } catch (SQLException err) {
                     throw new RuntimeException("Database error when login btn event trigger");
                 }
             }));

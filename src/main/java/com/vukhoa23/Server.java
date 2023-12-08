@@ -83,11 +83,10 @@ public class Server {
                             });
                             System.out.println(connectedSocket);
                         }
-                    }
-                    else if(object instanceof Integer){
+                    } else if (object instanceof Integer) {
                         Integer option = (Integer) object;
                         // return list of online users, prevent same user log in at a time
-                        if(option == 1){
+                        if (option == 1) {
                             OutputStream outputStream = socket.getOutputStream();
                             // create a data output stream from the output stream so we can send data through it
                             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
@@ -97,11 +96,24 @@ public class Server {
                             objectInputStream.close();
                             socket.close();
                         }
-                    }
-                    else if(object instanceof GroupCreated){
+                        // when new user create account, populate that user to all user tab
+                        else if (option == 2) {
+                            connectedSocket.forEach((connected) -> {
+                                try {
+                                    OutputStream outputStream = connected.getSocket().getOutputStream();
+                                    // create a data output stream from the output stream so we can send data through it
+                                    ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                    objectOutputStream.writeObject(onlineUserInfos);
+                                } catch (IOException err) {
+                                    err.printStackTrace();
+                                    throw new RuntimeException("Error when send messages to connected clients");
+                                }
+                            });
+                        }
+                    } else if (object instanceof GroupCreated) {
                         GroupCreated groupCreated = (GroupCreated) object;
-                        for (SocketInfo connected: connectedSocket) {
-                            if(groupCreated.getUsersInGroup().contains(connected.getUsername())){
+                        for (SocketInfo connected : connectedSocket) {
+                            if (groupCreated.getUsersInGroup().contains(connected.getUsername())) {
                                 OutputStream outputStream = connected.getSocket().getOutputStream();
                                 // create a data output stream from the output stream so we can send data through it
                                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);

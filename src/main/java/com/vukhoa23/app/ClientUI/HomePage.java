@@ -20,6 +20,8 @@ import java.util.List;
 public class HomePage extends JPanel {
     JPanel messagesContainer = new JPanel();
     JScrollPane messagesContainerScroll = new JScrollPane(messagesContainer);
+    JPanel receiverBox = new JPanel();
+
 
     HomePage(String theUsername) throws IOException {
         // connect to server
@@ -35,6 +37,12 @@ public class HomePage extends JPanel {
         this.setLayout(null);
         this.setBounds(0, 0, 1000, 750);
         this.setBackground(Color.gray);
+
+        // current receiver
+        receiverBox.setBounds(205, 560, 590, 20);
+        receiverBox.setBackground(Color.gray);
+        receiverBox.setLayout(new FlowLayout());
+        this.add(receiverBox);
 
 
         // button to redirect user to create page
@@ -281,6 +289,9 @@ public class HomePage extends JPanel {
     private void populateGroupChat(JPanel container) throws SQLException {
         container.removeAll();
         JLabel label = new JLabel("Your groups", SwingConstants.CENTER);
+        label.setPreferredSize(new Dimension(190, 30));
+        label.setMaximumSize(new Dimension(190, 30));
+        label.setMinimumSize(new Dimension(190, 30));
         container.add(label);
         String query = "SELECT group_id, group_chat.name\n" +
                 "FROM users_groups\n" +
@@ -302,6 +313,11 @@ public class HomePage extends JPanel {
             group.addActionListener(e -> {
                 ClientFrame.isGroupChat = true;
                 ClientFrame.groupId = groupId;
+                receiverBox.removeAll();
+                JLabel theReceiver  = new JLabel("Chatting with group: " + groupName);
+                receiverBox.add(theReceiver);
+                receiverBox.revalidate();
+                receiverBox.repaint();
                 try {
                     populateGroupChatToContainer(ClientFrame.username, ClientFrame.groupId);
                 } catch (SQLException ex) {
@@ -317,6 +333,8 @@ public class HomePage extends JPanel {
         container.removeAll();
         JLabel label = new JLabel("Users", SwingConstants.CENTER);
         label.setPreferredSize(new Dimension(190, 30));
+        label.setMaximumSize(new Dimension(190, 30));
+        label.setMinimumSize(new Dimension(190, 30));
         container.add(label);
 
         List<String> allUsers = new ArrayList<>();
@@ -340,34 +358,47 @@ public class HomePage extends JPanel {
             if (onlineUsers.contains(user)) {
                 JButton online = new JButton(user + " - online");
                 online.setBackground(Color.green);
-                online.setPreferredSize(new Dimension(190, 30));
-                online.setMaximumSize(new Dimension(190, 30));
-                online.setMinimumSize(new Dimension(190, 30));
+                online.setPreferredSize(new Dimension(200, 30));
+                online.setMaximumSize(new Dimension(200, 30));
+                online.setMinimumSize(new Dimension(200, 30));
                 container.add(online);
                 online.addActionListener(e -> {
                     ClientFrame.currentReceiver = user;
                     ClientFrame.isGroupChat = false;
+                    // show current receiver
+                    JLabel theReceiver  = new JLabel("Chatting with user: " + ClientFrame.currentReceiver);
+                    receiverBox.removeAll();
+                    receiverBox.add(theReceiver);
+                    receiverBox.revalidate();
+                    receiverBox.repaint();
                     try {
                         populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
                     } catch (SQLException ex) {
                         throw new RuntimeException(ex);
                     }
                 });
+
             } else {
                 JButton online = new JButton(user + " - offline");
-                online.setPreferredSize(new Dimension(190, 30));
-                online.setMaximumSize(new Dimension(190, 30));
-                online.setMinimumSize(new Dimension(190, 30));
+                online.setPreferredSize(new Dimension(200, 30));
+                online.setMaximumSize(new Dimension(200, 30));
+                online.setMinimumSize(new Dimension(200, 30));
                 container.add(online);
                 online.addActionListener(e -> {
                     ClientFrame.currentReceiver = user;
                     ClientFrame.isGroupChat = false;
+                    JLabel theReceiver  = new JLabel("Chatting with user: " + ClientFrame.currentReceiver);
+                    receiverBox.removeAll();
+                    receiverBox.add(theReceiver);
+                    receiverBox.revalidate();
+                    receiverBox.repaint();
                     try {
                         populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
                     } catch (SQLException ex) {
                         throw new RuntimeException(ex);
                     }
                 });
+
             }
         }
         container.revalidate();
