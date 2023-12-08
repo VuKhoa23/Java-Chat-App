@@ -7,8 +7,6 @@ import com.vukhoa23.utils.DbUtils;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.AdjustmentEvent;
-import java.awt.event.AdjustmentListener;
 import java.io.*;
 import java.net.Socket;
 import java.sql.Connection;
@@ -69,16 +67,19 @@ public class HomePage extends JPanel {
         this.add(messageInpContainer);
 
         JPanel onlineUsersContainer = new JPanel();
-        onlineUsersContainer.setBounds(0, 50, 200, 500);
-        onlineUsersContainer.setBackground(Color.red);
-        onlineUsersContainer.setLayout(new FlowLayout());
-        this.add(onlineUsersContainer);
+
+        onlineUsersContainer.setBackground(Color.lightGray);
+        onlineUsersContainer.setLayout(new BoxLayout(onlineUsersContainer, BoxLayout.Y_AXIS));
+        JScrollPane onlineUsersContainerScroll = new JScrollPane(onlineUsersContainer);
+        onlineUsersContainerScroll.setBounds(0, 50, 200, 500);
+        this.add(onlineUsersContainerScroll);
 
         JPanel groupChatContainer = new JPanel();
-        groupChatContainer.setBounds(800, 50, 200, 500);
-        groupChatContainer.setBackground(Color.red);
-        groupChatContainer.setLayout(new FlowLayout());
-        this.add(groupChatContainer);
+        groupChatContainer.setBackground(Color.lightGray);
+        groupChatContainer.setLayout(new BoxLayout(groupChatContainer, BoxLayout.Y_AXIS));
+        JScrollPane groupChatContainerScroll = new JScrollPane(groupChatContainer);
+        groupChatContainerScroll.setBounds(800, 50, 200, 500);
+        this.add(groupChatContainerScroll);
 
 
         messagesContainer.setBackground(Color.darkGray);
@@ -104,18 +105,16 @@ public class HomePage extends JPanel {
                         if (messageInfo.getMessage().equals("quit")) {
                             break;
                         }
-                        if (ClientFrame.currentReceiver != null && (messageInfo.getReceiver().equals(ClientFrame.username)
+                        if (ClientFrame.currentReceiver != null && messageInfo.getReceiver() != null && (messageInfo.getReceiver().equals(ClientFrame.username)
                                 && ClientFrame.currentReceiver.equals(messageInfo.getUsername()))) {
                             populateMessageToContainer(messageInfo.getUsername(), messageInfo.getReceiver());
-                        }
-                        else if(ClientFrame.isGroupChat != null && ClientFrame.isGroupChat && (messageInfo.getGroupId() == ClientFrame.groupId)){
+                        } else if (ClientFrame.isGroupChat != null && ClientFrame.isGroupChat && (messageInfo.getGroupId() == ClientFrame.groupId)) {
                             populateGroupChatToContainer(messageInfo.getUsername(), messageInfo.getGroupId());
                         }
                     } else if (object instanceof List) {
                         ArrayList<OnlineUserInfo> connectedUsers = (ArrayList<OnlineUserInfo>) object;
                         populateOnlineUsers(connectedUsers, onlineUsersContainer);
                     } else if (object instanceof GroupCreated) {
-                        System.out.println("A group with you as a member created");
                         populateGroupChat(groupChatContainer);
                     }
                 }
@@ -171,7 +170,7 @@ public class HomePage extends JPanel {
                             1,
                             ClientFrame.groupId
                     );
-                    if(!theString.equals("quit")){
+                    if (!theString.equals("quit")) {
                         Connection connection = DbUtils.getConnection();
                         PreparedStatement stmt = connection.prepareStatement(
                                 "INSERT INTO chat_history(sender, content, createdDate, is_groupChat, group_id) VALUES(?, ?, ?, ?, ?)"
@@ -200,7 +199,7 @@ public class HomePage extends JPanel {
     }
 
 
-    public void populateGroupChatToContainer(String theUsername, int groupId) throws SQLException{
+    public void populateGroupChatToContainer(String theUsername, int groupId) throws SQLException {
         messagesContainer.removeAll();
         Connection connection = DbUtils.getConnection();
         PreparedStatement preparedStatement = connection.prepareStatement(
@@ -261,10 +260,12 @@ public class HomePage extends JPanel {
             theMessage.setColumns(50);
             theMessage.setRows(3);
 
+            JScrollPane messageScroll = new JScrollPane(theMessage);
+
             messageContainer.setPreferredSize(new Dimension(600, 100));
             messageContainer.setLayout(new FlowLayout());
             messageContainer.add(username);
-            messageContainer.add(theMessage);
+            messageContainer.add(messageScroll);
             messagesContainer.add(messageContainer);
         }
         messagesContainer.validate();
@@ -279,7 +280,7 @@ public class HomePage extends JPanel {
 
     private void populateGroupChat(JPanel container) throws SQLException {
         container.removeAll();
-        JLabel label = new JLabel("Your groups");
+        JLabel label = new JLabel("Your groups", SwingConstants.CENTER);
         container.add(label);
         String query = "SELECT group_id, group_chat.name\n" +
                 "FROM users_groups\n" +
@@ -294,7 +295,9 @@ public class HomePage extends JPanel {
             int groupId = rs.getInt(1);
             String groupName = rs.getString(2);
             JButton group = new JButton(groupName);
-            group.setPreferredSize(new Dimension(150, 30));
+            group.setPreferredSize(new Dimension(190, 30));
+            group.setMaximumSize(new Dimension(190, 30));
+            group.setMinimumSize(new Dimension(190, 30));
             container.add(group);
             group.addActionListener(e -> {
                 ClientFrame.isGroupChat = true;
@@ -312,7 +315,8 @@ public class HomePage extends JPanel {
 
     public void populateOnlineUsers(ArrayList<OnlineUserInfo> onlineUserInfos, JPanel container) throws SQLException {
         container.removeAll();
-        JLabel label = new JLabel("Users");
+        JLabel label = new JLabel("Users", SwingConstants.CENTER);
+        label.setPreferredSize(new Dimension(190, 30));
         container.add(label);
 
         List<String> allUsers = new ArrayList<>();
@@ -335,7 +339,10 @@ public class HomePage extends JPanel {
             }
             if (onlineUsers.contains(user)) {
                 JButton online = new JButton(user + " - online");
+                online.setBackground(Color.green);
                 online.setPreferredSize(new Dimension(190, 30));
+                online.setMaximumSize(new Dimension(190, 30));
+                online.setMinimumSize(new Dimension(190, 30));
                 container.add(online);
                 online.addActionListener(e -> {
                     ClientFrame.currentReceiver = user;
@@ -349,6 +356,8 @@ public class HomePage extends JPanel {
             } else {
                 JButton online = new JButton(user + " - offline");
                 online.setPreferredSize(new Dimension(190, 30));
+                online.setMaximumSize(new Dimension(190, 30));
+                online.setMinimumSize(new Dimension(190, 30));
                 container.add(online);
                 online.addActionListener(e -> {
                     ClientFrame.currentReceiver = user;
