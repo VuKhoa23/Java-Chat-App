@@ -1,5 +1,6 @@
 package com.vukhoa23;
 
+import com.vukhoa23.app.entity.GroupCreated;
 import com.vukhoa23.app.entity.MessageInfo;
 import com.vukhoa23.app.entity.OnlineUserInfo;
 import com.vukhoa23.app.entity.SocketInfo;
@@ -83,10 +84,9 @@ public class Server {
                             System.out.println(connectedSocket);
                         }
                     }
-                    else{
+                    else if(object instanceof Integer){
                         Integer option = (Integer) object;
-                        System.out.println(option);
-                        // return list of online users
+                        // return list of online users, prevent same user log in at a time
                         if(option == 1){
                             OutputStream outputStream = socket.getOutputStream();
                             // create a data output stream from the output stream so we can send data through it
@@ -96,6 +96,17 @@ public class Server {
                             objectOutputStream.close();
                             objectInputStream.close();
                             socket.close();
+                        }
+                    }
+                    else if(object instanceof GroupCreated){
+                        GroupCreated groupCreated = (GroupCreated) object;
+                        for (SocketInfo connected: connectedSocket) {
+                            if(groupCreated.getUsersInGroup().contains(connected.getUsername())){
+                                OutputStream outputStream = connected.getSocket().getOutputStream();
+                                // create a data output stream from the output stream so we can send data through it
+                                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                objectOutputStream.writeObject(groupCreated);
+                            }
                         }
                     }
                 } catch (IOException err) {

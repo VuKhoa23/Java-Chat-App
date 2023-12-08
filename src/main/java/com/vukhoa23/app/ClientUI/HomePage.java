@@ -1,5 +1,6 @@
 package com.vukhoa23.app.ClientUI;
 
+import com.vukhoa23.app.entity.GroupCreated;
 import com.vukhoa23.app.entity.MessageInfo;
 import com.vukhoa23.app.entity.OnlineUserInfo;
 import com.vukhoa23.utils.DbUtils;
@@ -37,11 +38,16 @@ public class HomePage extends JPanel {
         this.setBounds(0, 0, 1000, 750);
         this.setBackground(Color.gray);
 
+
         // button to redirect user to create page
         JButton createGroupBtn = new JButton("Create group chat");
         createGroupBtn.setBounds(820, 600, 150, 50);
-        createGroupBtn.addActionListener(e->{
-            ClientFrame.homeToCreateGroup();
+        createGroupBtn.addActionListener(e -> {
+            try {
+                ClientFrame.homeToCreateGroup();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
         });
         this.add(createGroupBtn);
 
@@ -68,6 +74,13 @@ public class HomePage extends JPanel {
         onlineUsersContainer.setLayout(new FlowLayout());
         this.add(onlineUsersContainer);
 
+        JPanel groupChatContainer = new JPanel();
+        groupChatContainer.setBounds(800, 50, 200, 500);
+        groupChatContainer.setBackground(Color.red);
+        groupChatContainer.setLayout(new FlowLayout());
+        this.add(groupChatContainer);
+
+
         messagesContainer.setBackground(Color.darkGray);
         messagesContainer.setLayout(new GridLayout(0, 1));
         messagesContainerScroll.setBounds(200, 50, 600, 500);
@@ -75,6 +88,11 @@ public class HomePage extends JPanel {
 
         //create thread that receive message from server
         Thread receiveThread = new Thread(() -> {
+            try {
+                populateGroupChat(groupChatContainer);
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
             try {
                 while (true) {
                     // create a DataInputStream so we can read data from it.
@@ -90,9 +108,15 @@ public class HomePage extends JPanel {
                                 && ClientFrame.currentReceiver.equals(messageInfo.getUsername()))) {
                             populateMessageToContainer(messageInfo.getUsername(), messageInfo.getReceiver());
                         }
+                        else if(ClientFrame.isGroupChat != null && ClientFrame.isGroupChat && (messageInfo.getGroupId() == ClientFrame.groupId)){
+                            populateGroupChatToContainer(messageInfo.getUsername(), messageInfo.getGroupId());
+                        }
                     } else if (object instanceof List) {
                         ArrayList<OnlineUserInfo> connectedUsers = (ArrayList<OnlineUserInfo>) object;
                         populateOnlineUsers(connectedUsers, onlineUsersContainer);
+                    } else if (object instanceof GroupCreated) {
+                        System.out.println("A group with you as a member created");
+                        populateGroupChat(groupChatContainer);
                     }
                 }
             } catch (IOException | SQLException err) {
@@ -106,13 +130,13 @@ public class HomePage extends JPanel {
 
         sendBtn.addActionListener((e) -> {
             try {
-                if (ClientFrame.currentReceiver == null) {
+                if (ClientFrame.currentReceiver == null && ClientFrame.isGroupChat == null) {
                     JOptionPane.showMessageDialog(
                             this,
                             "Select a user to chat with",
                             "Alert",
                             JOptionPane.ERROR_MESSAGE);
-                } else {
+                } else if (!ClientFrame.isGroupChat) {
                     String theString = messageInp.getText();
                     MessageInfo messageInfo = new MessageInfo(
                             ClientFrame.username,
@@ -122,13 +146,15 @@ public class HomePage extends JPanel {
                         // connect to db and save the message
                         Connection connection = DbUtils.getConnection();
                         PreparedStatement stmt = connection.prepareStatement(
-                                "INSERT INTO chat_history(sender, receiver, content, createdDate) values(?, ?, ?, ?)"
+                                "INSERT INTO chat_history(sender, receiver, content, createdDate, is_groupChat) values(?, ?, ?, ?, ?)"
                         );
                         stmt.setString(1, messageInfo.getUsername());
                         stmt.setString(2, messageInfo.getReceiver());
                         stmt.setString(3, messageInfo.getMessage());
                         stmt.setString(4, messageInfo.getCreatedDate().toString());
+                        stmt.setInt(5, 0);
                         stmt.executeUpdate();
+                        connection.close();
                     }
 
                     // write the message we want to send
@@ -136,8 +162,34 @@ public class HomePage extends JPanel {
                     // populate messages
                     populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
                     //objectOutputStream.flush();
+                } else {
+                    String theString = messageInp.getText();
+                    MessageInfo messageInfo = new MessageInfo(
+                            ClientFrame.username,
+                            theString,
+                            new Date().toString(),
+                            1,
+                            ClientFrame.groupId
+                    );
+                    if(!theString.equals("quit")){
+                        Connection connection = DbUtils.getConnection();
+                        PreparedStatement stmt = connection.prepareStatement(
+                                "INSERT INTO chat_history(sender, content, createdDate, is_groupChat, group_id) VALUES(?, ?, ?, ?, ?)"
+                        );
+                        stmt.setString(1, messageInfo.getUsername());
+                        stmt.setString(2, messageInfo.getMessage());
+                        stmt.setString(3, messageInfo.getCreatedDate());
+                        stmt.setInt(4, messageInfo.isGroupChat());
+                        stmt.setInt(5, messageInfo.getGroupId());
+                        stmt.executeUpdate();
+                        connection.close();
+                    }
+                    // write the message we want to send
+                    objectOutputStream.writeObject(messageInfo);
+                    // populate messages
+                    //populateGroupChatToContainer(ClientFrame.username, ClientFrame.groupId);
+                    //objectOutputStream.flush();
                 }
-
 
             } catch (IOException err) {
                 throw new RuntimeException("Error when sending message from client");
@@ -145,6 +197,43 @@ public class HomePage extends JPanel {
                 throw new RuntimeException(ex);
             }
         });
+    }
+
+
+    public void populateGroupChatToContainer(String theUsername, int groupId) throws SQLException{
+        messagesContainer.removeAll();
+        Connection connection = DbUtils.getConnection();
+        PreparedStatement preparedStatement = connection.prepareStatement(
+                "SELECT * FROM chat_history WHERE group_id=?"
+        );
+        preparedStatement.setInt(1, groupId);
+        ResultSet rs = preparedStatement.executeQuery();
+        while (rs.next()) {
+            MessageInfo messageInfo = new MessageInfo(
+                    rs.getString("sender"),
+                    rs.getString("receiver"),
+                    rs.getString("content"),
+                    rs.getString("createdDate"));
+            JPanel messageContainer = new JPanel();
+            JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
+            JTextArea theMessage = new JTextArea(messageInfo.getMessage());
+            username.setPreferredSize(new Dimension(500, 30));
+            theMessage.setColumns(50);
+            theMessage.setRows(3);
+
+            messageContainer.setPreferredSize(new Dimension(600, 100));
+            messageContainer.setLayout(new FlowLayout());
+            messageContainer.add(username);
+            messageContainer.add(theMessage);
+            messagesContainer.add(messageContainer);
+        }
+        messagesContainer.validate();
+        messagesContainer.repaint();
+        messagesContainerScroll.validate();
+        JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
+        vertical.setValue(vertical.getMaximum());
+
+        // scroll to bottom when new messages are populated
     }
 
     public void populateMessageToContainer(String sender, String receiver) throws SQLException {
@@ -188,6 +277,39 @@ public class HomePage extends JPanel {
 
     }
 
+    private void populateGroupChat(JPanel container) throws SQLException {
+        container.removeAll();
+        JLabel label = new JLabel("Your groups");
+        container.add(label);
+        String query = "SELECT group_id, group_chat.name\n" +
+                "FROM users_groups\n" +
+                "JOIN group_chat\n" +
+                "ON group_chat.id = users_groups.group_id\n" +
+                "WHERE users_groups.username =?";
+        Connection connection = DbUtils.getConnection();
+        PreparedStatement stmt = connection.prepareStatement(query);
+        stmt.setString(1, ClientFrame.username);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            int groupId = rs.getInt(1);
+            String groupName = rs.getString(2);
+            JButton group = new JButton(groupName);
+            group.setPreferredSize(new Dimension(150, 30));
+            container.add(group);
+            group.addActionListener(e -> {
+                ClientFrame.isGroupChat = true;
+                ClientFrame.groupId = groupId;
+                try {
+                    populateGroupChatToContainer(ClientFrame.username, ClientFrame.groupId);
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                }
+            });
+        }
+        container.revalidate();
+        container.repaint();
+    }
+
     public void populateOnlineUsers(ArrayList<OnlineUserInfo> onlineUserInfos, JPanel container) throws SQLException {
         container.removeAll();
         JLabel label = new JLabel("Users");
@@ -217,6 +339,7 @@ public class HomePage extends JPanel {
                 container.add(online);
                 online.addActionListener(e -> {
                     ClientFrame.currentReceiver = user;
+                    ClientFrame.isGroupChat = false;
                     try {
                         populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
                     } catch (SQLException ex) {
@@ -229,6 +352,7 @@ public class HomePage extends JPanel {
                 container.add(online);
                 online.addActionListener(e -> {
                     ClientFrame.currentReceiver = user;
+                    ClientFrame.isGroupChat = false;
                     try {
                         populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
                     } catch (SQLException ex) {

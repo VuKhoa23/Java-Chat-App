@@ -11,6 +11,8 @@ public class ClientFrame extends JFrame {
     public static boolean isLoggedIn = false;
     public static String username = null;
     public static String currentReceiver = null;
+    public static Boolean isGroupChat = null;
+    public static int groupId;
     public ClientFrame() throws SQLException {
         this.setLayout(new BorderLayout());
         body.setLayout(null);
@@ -33,7 +35,7 @@ public class ClientFrame extends JFrame {
         Header.setHeader("Logged in as " + username);
     }
 
-    public static void homeToCreateGroup(){
+    public static void homeToCreateGroup() throws SQLException {
         setBody(new CreateGroup());
     }
 
