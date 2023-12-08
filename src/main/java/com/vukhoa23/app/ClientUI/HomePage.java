@@ -22,7 +22,6 @@ public class HomePage extends JPanel {
     JPanel messagesContainer = new JPanel();
     JScrollPane messagesContainerScroll = new JScrollPane(messagesContainer);
 
-
     HomePage(String theUsername) throws IOException {
         // connect to server
         Socket socket = new Socket("localhost", 7777);
@@ -37,6 +36,14 @@ public class HomePage extends JPanel {
         this.setLayout(null);
         this.setBounds(0, 0, 1000, 750);
         this.setBackground(Color.gray);
+
+        // button to redirect user to create page
+        JButton createGroupBtn = new JButton("Create group chat");
+        createGroupBtn.setBounds(820, 600, 150, 50);
+        createGroupBtn.addActionListener(e->{
+            ClientFrame.homeToCreateGroup();
+        });
+        this.add(createGroupBtn);
 
         JTextArea messageInp = new JTextArea();
         JButton sendBtn = new JButton("Send");

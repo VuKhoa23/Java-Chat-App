@@ -7,6 +7,7 @@ import java.sql.SQLException;
 
 public class ClientFrame extends JFrame {
     private static JPanel body = new JPanel();
+    private static JPanel homePage = null;
     public static boolean isLoggedIn = false;
     public static String username = null;
     public static String currentReceiver = null;
@@ -26,9 +27,18 @@ public class ClientFrame extends JFrame {
 
     public static void loggedInSuccess(String theUsername) throws IOException {
         isLoggedIn = true;
-        setBody(new HomePage(theUsername));
+        homePage = new HomePage(theUsername);
+        setBody(homePage);
         username = theUsername;
         Header.setHeader("Logged in as " + username);
+    }
+
+    public static void homeToCreateGroup(){
+        setBody(new CreateGroup());
+    }
+
+    public static void createGroupToHome(){
+        setBody(homePage);
     }
 
     private static void setBody(JPanel content){
