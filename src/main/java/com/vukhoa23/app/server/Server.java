@@ -134,6 +134,22 @@ public class Server {
                             }
                         }
                     }
+                    else if (object instanceof FileSend){
+                        FileSend fileSend = (FileSend) object;
+                        System.out.println("User want to download: " + fileSend.getGeneratedName());
+                        File fileToSend = new File("./files/" + fileSend.getGeneratedName());
+
+                        FileInputStream fileInputStream = new FileInputStream(fileToSend);
+                        OutputStream fileOutputStream = socket.getOutputStream();
+
+                        byte[] buffer = new byte[1024];
+                        int bytesRead;
+                        while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                            fileOutputStream.write(buffer, 0, bytesRead);
+                        }
+                        socket.close();
+                        fileOutputStream.close();
+                    }
                 } catch (IOException err) {
                     System.out.println(err);
                 } catch (ClassNotFoundException e) {
