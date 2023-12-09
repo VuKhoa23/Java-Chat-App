@@ -117,6 +117,8 @@ public class HomePage extends JPanel {
                     Object object = (Object) objectInputStream.readObject();
                     if (object instanceof MessageInfo) {
                         MessageInfo messageInfo = (MessageInfo) object;
+                        System.out.println(messageInfo.getUsername());
+                        System.out.printf(messageInfo.getReceiver());
                         if (messageInfo.getMessage().equals("quit")) {
                             break;
                         }
@@ -125,6 +127,9 @@ public class HomePage extends JPanel {
                             populateMessageToContainer(messageInfo.getUsername(), messageInfo.getReceiver());
                         } else if (ClientFrame.isGroupChat != null && ClientFrame.isGroupChat && (messageInfo.getGroupId() == ClientFrame.groupId)) {
                             populateGroupChatToContainer(messageInfo.getUsername(), messageInfo.getGroupId());
+                        } else if (ClientFrame.currentReceiver != null && messageInfo.getReceiver() != null && (messageInfo.getReceiver().equals(ClientFrame.currentReceiver)) && (ClientFrame.username.equals(messageInfo.getUsername()))) {
+                            System.out.println("here");
+                            populateMessageToContainer(messageInfo.getUsername(), messageInfo.getReceiver());
                         }
                     } else if (object instanceof List) {
                         ArrayList<OnlineUserInfo> connectedUsers = (ArrayList<OnlineUserInfo>) object;
@@ -267,26 +272,12 @@ public class HomePage extends JPanel {
                             ClientFrame.username,
                             ClientFrame.currentReceiver,
                             theString, new Date().toString());
-                    if (!theString.equals("quit")) {
-                        // connect to db and save the message
-                        Connection connection = DbUtils.getConnection();
-                        PreparedStatement stmt = connection.prepareStatement(
-                                "INSERT INTO chat_history(sender, receiver, content, createdDate, is_groupChat, is_file) values(?, ?, ?, ?, ?, 0)"
-                        );
-                        stmt.setString(1, messageInfo.getUsername());
-                        stmt.setString(2, messageInfo.getReceiver());
-                        stmt.setString(3, messageInfo.getMessage());
-                        stmt.setString(4, messageInfo.getCreatedDate().toString());
-                        stmt.setInt(5, 0);
-                        stmt.executeUpdate();
-                        connection.close();
-                    }
+                    messageInfo.setIsGroupChat(0);
+                    messageInfo.setIsFile(0);
+                    messageInfo.setQuery("INSERT INTO chat_history(sender, receiver, content, createdDate, is_groupChat, is_file) values(?, ?, ?, ?, ?, 0)");
 
                     // write the message we want to send
                     objectOutputStream.writeObject(messageInfo);
-                    // populate messages
-                    populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
-                    //objectOutputStream.flush();
                 } else {
                     String theString = messageInp.getText();
                     MessageInfo messageInfo = new MessageInfo(

@@ -3,6 +3,7 @@ package com.vukhoa23.app.client.entity;
 import java.io.Serializable;
 
 public class MessageInfo implements Serializable {
+    private String query;
     private String username;
     private String receiver;
     private String message;
@@ -14,6 +15,14 @@ public class MessageInfo implements Serializable {
 
     private String originalFileName = null;
     private String generatedFileName = null;
+
+    public String getQuery() {
+        return query;
+    }
+
+    public void setQuery(String query) {
+        this.query = query;
+    }
 
     public String getUsername() {
         return username;

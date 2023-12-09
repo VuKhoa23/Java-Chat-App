@@ -1,10 +1,14 @@
 package com.vukhoa23.app.server;
 
 import com.vukhoa23.app.client.entity.*;
+import com.vukhoa23.utils.DbUtils;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class Server {
@@ -67,6 +71,25 @@ public class Server {
                                         }
                                     });
                                     break;
+                                } else {
+                                    if (messageInfo.getIsGroupChat() == 0) {
+                                        try {
+                                            // connect to db and save the message
+                                            Connection connection = DbUtils.getConnection();
+                                            PreparedStatement stmt = connection.prepareStatement(
+                                                    "INSERT INTO chat_history(sender, receiver, content, createdDate, is_groupChat, is_file) values(?, ?, ?, ?, ?, 0)"
+                                            );
+                                            stmt.setString(1, messageInfo.getUsername());
+                                            stmt.setString(2, messageInfo.getReceiver());
+                                            stmt.setString(3, messageInfo.getMessage());
+                                            stmt.setString(4, messageInfo.getCreatedDate().toString());
+                                            stmt.setInt(5, 0);
+                                            stmt.executeUpdate();
+                                            connection.close();
+                                        } catch (SQLException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    }
                                 }
                                 connectedSocket.forEach((connected) -> {
                                     try {
@@ -109,12 +132,12 @@ public class Server {
                             });
                         }
                         // save user file
-                        else if (option == 3){
+                        else if (option == 3) {
                             FileSend fileSend = (FileSend) objectInputStream.readObject();
                             System.out.println(fileSend);
                             File dir = new File("./files");
                             dir.mkdirs();
-                            FileOutputStream fileOutputStream = new FileOutputStream("./files/"+fileSend.getGeneratedName());
+                            FileOutputStream fileOutputStream = new FileOutputStream("./files/" + fileSend.getGeneratedName());
 
                             byte[] buffer = new byte[1024];
                             int bytesRead;
@@ -133,8 +156,7 @@ public class Server {
                                 objectOutputStream.writeObject(groupCreated);
                             }
                         }
-                    }
-                    else if (object instanceof FileSend){
+                    } else if (object instanceof FileSend) {
                         FileSend fileSend = (FileSend) object;
                         System.out.println("User want to download: " + fileSend.getGeneratedName());
                         File fileToSend = new File("./files/" + fileSend.getGeneratedName());
