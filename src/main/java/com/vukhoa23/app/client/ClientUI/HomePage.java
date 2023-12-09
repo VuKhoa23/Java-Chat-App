@@ -180,14 +180,6 @@ public class HomePage extends JPanel {
                         uploadFrame.add(label);
                         uploadFrame.setVisible(true);
 
-                        Timer t = new Timer(100, new ActionListener(){
-                            @Override
-                            public void actionPerformed(ActionEvent e) {
-                                label.setText("Sending");
-                            }
-                        });
-                        t.start();
-
                         FileInputStream fileInputStream = new FileInputStream(selectedFile);
                         OutputStream fileOutputStream = fileSocket.getOutputStream();
 
@@ -197,6 +189,7 @@ public class HomePage extends JPanel {
                         while ((bytesRead = fileInputStream.read(buffer)) != -1) {
                             fileOutputStream.write(buffer, 0, bytesRead);
                         }
+                        fileOutputStream.close();
                         label.setText("File sent");
 
                         fileSocket.close();
