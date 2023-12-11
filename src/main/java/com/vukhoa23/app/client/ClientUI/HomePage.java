@@ -501,7 +501,7 @@ public class HomePage extends JPanel {
     }
 
     private void populateGroupChat(JPanel container) throws SQLException {
-        try{
+        try {
             Socket groupChatSocket = new Socket("localhost", 7777);
             OutputStream outputStream = groupChatSocket.getOutputStream();
             ObjectOutputStream groupObjectOutputStream = new ObjectOutputStream(outputStream);
@@ -560,78 +560,88 @@ public class HomePage extends JPanel {
     }
 
     public void populateOnlineUsers(ArrayList<OnlineUserInfo> onlineUserInfos, JPanel container) throws SQLException {
-        container.removeAll();
-        JLabel label = new JLabel("Users", SwingConstants.CENTER);
-        label.setPreferredSize(new Dimension(190, 30));
-        label.setMaximumSize(new Dimension(190, 30));
-        label.setMinimumSize(new Dimension(190, 30));
-        container.add(label);
+        try {
+            container.removeAll();
+            JLabel label = new JLabel("Users", SwingConstants.CENTER);
+            label.setPreferredSize(new Dimension(190, 30));
+            label.setMaximumSize(new Dimension(190, 30));
+            label.setMinimumSize(new Dimension(190, 30));
+            container.add(label);
 
-        List<String> allUsers = new ArrayList<>();
+            Socket onlineUsersSocket = new Socket("localhost", 7777);
+            OutputStream outputStream = onlineUsersSocket.getOutputStream();
+            ObjectOutputStream onlineObjectOutputStream = new ObjectOutputStream(outputStream);
+            Integer option = 5;
+            onlineObjectOutputStream.writeObject(option);
 
-        Connection connection = DbUtils.getConnection();
-        PreparedStatement stmt = connection.prepareStatement("SELECT username FROM account");
-        ResultSet rs = stmt.executeQuery();
-        while (rs.next()) {
-            allUsers.add(rs.getString(1));
-        }
+            InputStream inputStream = onlineUsersSocket.getInputStream();
+            ObjectInputStream onlineObjectInputStream = new ObjectInputStream(inputStream);
+            ArrayList<String> allUsers = (ArrayList<String>) onlineObjectInputStream.readObject();
 
-        List<String> onlineUsers = new ArrayList<>();
-        for (OnlineUserInfo onlineUserInfo : onlineUserInfos) {
-            onlineUsers.add(onlineUserInfo.getUsername());
-        }
+            System.out.println(allUsers);
 
-        for (String user : allUsers) {
-            if (user.equals(ClientFrame.username)) {
-                continue;
+            List<String> onlineUsers = new ArrayList<>();
+            for (OnlineUserInfo onlineUserInfo : onlineUserInfos) {
+                onlineUsers.add(onlineUserInfo.getUsername());
             }
-            if (onlineUsers.contains(user)) {
-                JButton online = new JButton(user + " - online");
-                online.setBackground(Color.green);
-                online.setPreferredSize(new Dimension(200, 30));
-                online.setMaximumSize(new Dimension(200, 30));
-                online.setMinimumSize(new Dimension(200, 30));
-                container.add(online);
-                online.addActionListener(e -> {
-                    ClientFrame.currentReceiver = user;
-                    ClientFrame.isGroupChat = false;
-                    // show current receiver
-                    JLabel theReceiver = new JLabel("Chatting with user: " + ClientFrame.currentReceiver);
-                    receiverBox.removeAll();
-                    receiverBox.add(theReceiver);
-                    receiverBox.revalidate();
-                    receiverBox.repaint();
-                    try {
-                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
-                    } catch (SQLException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                });
 
-            } else {
-                JButton online = new JButton(user + " - offline");
-                online.setPreferredSize(new Dimension(200, 30));
-                online.setMaximumSize(new Dimension(200, 30));
-                online.setMinimumSize(new Dimension(200, 30));
-                container.add(online);
-                online.addActionListener(e -> {
-                    ClientFrame.currentReceiver = user;
-                    ClientFrame.isGroupChat = false;
-                    JLabel theReceiver = new JLabel("Chatting with user: " + ClientFrame.currentReceiver);
-                    receiverBox.removeAll();
-                    receiverBox.add(theReceiver);
-                    receiverBox.revalidate();
-                    receiverBox.repaint();
-                    try {
-                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
-                    } catch (SQLException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                });
+            for (String user : allUsers) {
+                if (user.equals(ClientFrame.username)) {
+                    continue;
+                }
+                if (onlineUsers.contains(user)) {
+                    JButton online = new JButton(user + " - online");
+                    online.setBackground(Color.green);
+                    online.setPreferredSize(new Dimension(200, 30));
+                    online.setMaximumSize(new Dimension(200, 30));
+                    online.setMinimumSize(new Dimension(200, 30));
+                    container.add(online);
+                    online.addActionListener(e -> {
+                        ClientFrame.currentReceiver = user;
+                        ClientFrame.isGroupChat = false;
+                        // show current receiver
+                        JLabel theReceiver = new JLabel("Chatting with user: " + ClientFrame.currentReceiver);
+                        receiverBox.removeAll();
+                        receiverBox.add(theReceiver);
+                        receiverBox.revalidate();
+                        receiverBox.repaint();
+                        try {
+                            populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
+                        } catch (SQLException ex) {
+                            throw new RuntimeException(ex);
+                        }
+                    });
 
+                } else {
+                    JButton online = new JButton(user + " - offline");
+                    online.setPreferredSize(new Dimension(200, 30));
+                    online.setMaximumSize(new Dimension(200, 30));
+                    online.setMinimumSize(new Dimension(200, 30));
+                    container.add(online);
+                    online.addActionListener(e -> {
+                        ClientFrame.currentReceiver = user;
+                        ClientFrame.isGroupChat = false;
+                        JLabel theReceiver = new JLabel("Chatting with user: " + ClientFrame.currentReceiver);
+                        receiverBox.removeAll();
+                        receiverBox.add(theReceiver);
+                        receiverBox.revalidate();
+                        receiverBox.repaint();
+                        try {
+                            populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
+                        } catch (SQLException ex) {
+                            throw new RuntimeException(ex);
+                        }
+                    });
+                }
             }
+            container.revalidate();
+            container.repaint();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
-        container.revalidate();
-        container.repaint();
     }
 }

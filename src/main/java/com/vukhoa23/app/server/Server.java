@@ -7,10 +7,7 @@ import com.vukhoa23.utils.DbUtils;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -223,6 +220,25 @@ public class Server {
                                 // create a data output stream from the output stream so we can send data through it
                                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
                                 objectOutputStream.writeObject(groups);
+                                socket.close();
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        else if(option == 5){
+                            try{
+                                System.out.println("ere");
+                                Connection connection = DbUtils.getConnection();
+                                PreparedStatement stmt = connection.prepareStatement("SELECT username FROM account");
+                                ResultSet rs = stmt.executeQuery();
+                                ArrayList<String> allUsers = new ArrayList<>();
+                                while(rs.next()){
+                                    allUsers.add(rs.getString("username"));
+                                }
+                                OutputStream outputStream = socket.getOutputStream();
+                                // create a data output stream from the output stream so we can send data through it
+                                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                objectOutputStream.writeObject(allUsers);
                                 socket.close();
                             } catch (SQLException e) {
                                 throw new RuntimeException(e);
