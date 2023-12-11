@@ -278,226 +278,236 @@ public class HomePage extends JPanel {
 
 
     public void populateGroupChatToContainer(String theUsername, int groupId) throws SQLException {
-        messagesContainer.removeAll();
-        Connection connection = DbUtils.getConnection();
-        PreparedStatement preparedStatement = connection.prepareStatement(
-                "SELECT * FROM chat_history WHERE group_id=?"
-        );
-        preparedStatement.setInt(1, groupId);
-        ResultSet rs = preparedStatement.executeQuery();
-        while (rs.next()) {
-            MessageInfo messageInfo = new MessageInfo(
-                    rs.getString("sender"),
-                    rs.getString("content"),
-                    rs.getString("createdDate"),
-                    rs.getInt("is_groupChat"),
-                    rs.getInt("group_id"),
-                    rs.getInt("is_file"),
-                    rs.getString("original_file_name"),
-                    rs.getString("generated_file_name"));
-            if (messageInfo.getIsFile() == 0) {
-                JPanel messageContainer = new JPanel();
-                JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
-                JTextArea theMessage = new JTextArea(messageInfo.getMessage());
-                username.setPreferredSize(new Dimension(500, 30));
-                theMessage.setColumns(50);
-                theMessage.setRows(3);
-                theMessage.setEditable(false);
+        try{
+            Socket groupMessagesSocket = new Socket("localhost", 7777);
+            OutputStream groupMessagesSocketOutputStream = groupMessagesSocket.getOutputStream();
+            ObjectOutputStream groupMessagesObjectOutputStream = new ObjectOutputStream(groupMessagesSocketOutputStream);
 
-                JScrollPane messageScroll = new JScrollPane(theMessage);
+            Integer option = 7;
+            groupMessagesObjectOutputStream.writeObject(option);
+            Integer theGroupId = groupId;
+            groupMessagesObjectOutputStream.writeObject(theGroupId);
 
-                messageContainer.setPreferredSize(new Dimension(600, 100));
-                messageContainer.setLayout(new FlowLayout());
-                messageContainer.add(username);
-                messageContainer.add(messageScroll);
-                messagesContainer.add(messageContainer);
-            } else {
-                JPanel messageContainer = new JPanel();
-                JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
-                JTextArea theMessage = new JTextArea(messageInfo.getOriginalFileName() + "\n" + rs.getFloat("file_size") + " MB");
-                username.setPreferredSize(new Dimension(500, 30));
-                theMessage.setColumns(30);
-                theMessage.setRows(3);
-                theMessage.setEditable(false);
-                theMessage.setFont(new Font("Dialog", Font.BOLD, 12));
+            InputStream groupMessagesSocketInputStream = groupMessagesSocket.getInputStream();
+            ObjectInputStream groupMessagesObjectInputStream = new ObjectInputStream(groupMessagesSocketInputStream);
 
-                JScrollPane messageScroll = new JScrollPane(theMessage);
-                JButton downloadBtn = new JButton("Download");
-                downloadBtn.addActionListener(e -> {
-                    try {
-                        JFileChooser chooser = new JFileChooser();
-                        chooser.setCurrentDirectory(new java.io.File("."));
-                        chooser.setDialogTitle("Choose directory to save the file");
-                        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                        //
-                        // disable the "All files" option.
-                        //
-                        chooser.setAcceptAllFileFilterUsed(false);
-                        //
-                        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                            String dir = String.valueOf(chooser.getSelectedFile());
-                            Socket downloadSocket = new Socket("localhost", 7777);
-                            OutputStream outputStream = downloadSocket.getOutputStream();
-                            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+            ArrayList<MessageInfo> messageInfos = (ArrayList<MessageInfo>) groupMessagesObjectInputStream.readObject();
 
-                            objectOutputStream.writeObject(new FileSend(messageInfo.getOriginalFileName(), messageInfo.getGeneratedFileName()));
+            messagesContainer.removeAll();
+            for (MessageInfo messageInfo : messageInfos) {
+                if (messageInfo.getIsFile() == 0) {
+                    JPanel messageContainer = new JPanel();
+                    JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
+                    JTextArea theMessage = new JTextArea(messageInfo.getMessage());
+                    username.setPreferredSize(new Dimension(500, 30));
+                    theMessage.setColumns(50);
+                    theMessage.setRows(3);
+                    theMessage.setEditable(false);
 
-                            FileOutputStream fileOutputStream = new FileOutputStream(dir + "\\" + messageInfo.getOriginalFileName());
-                            JFrame downloadFrame = new JFrame();
-                            downloadFrame.setSize(new Dimension(300, 200));
-                            JLabel label = new JLabel("Downloading...");
-                            downloadFrame.setLayout(new FlowLayout());
-                            downloadFrame.add(label);
-                            downloadFrame.setVisible(true);
+                    JScrollPane messageScroll = new JScrollPane(theMessage);
 
-                            byte[] buffer = new byte[1024];
-                            int bytesRead;
-                            while ((bytesRead = downloadSocket.getInputStream().read(buffer)) != -1) {
-                                fileOutputStream.write(buffer, 0, bytesRead);
+                    messageContainer.setPreferredSize(new Dimension(600, 100));
+                    messageContainer.setLayout(new FlowLayout());
+                    messageContainer.add(username);
+                    messageContainer.add(messageScroll);
+                    messagesContainer.add(messageContainer);
+                } else {
+                    JPanel messageContainer = new JPanel();
+                    JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
+                    JTextArea theMessage = new JTextArea(messageInfo.getOriginalFileName() + "\n" + messageInfo.getFileSize() + " MB");
+                    username.setPreferredSize(new Dimension(500, 30));
+                    theMessage.setColumns(30);
+                    theMessage.setRows(3);
+                    theMessage.setEditable(false);
+                    theMessage.setFont(new Font("Dialog", Font.BOLD, 12));
+
+                    JScrollPane messageScroll = new JScrollPane(theMessage);
+                    JButton downloadBtn = new JButton("Download");
+                    downloadBtn.addActionListener(e -> {
+                        try {
+                            JFileChooser chooser = new JFileChooser();
+                            chooser.setCurrentDirectory(new java.io.File("."));
+                            chooser.setDialogTitle("Choose directory to save the file");
+                            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                            //
+                            // disable the "All files" option.
+                            //
+                            chooser.setAcceptAllFileFilterUsed(false);
+                            //
+                            if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                                String dir = String.valueOf(chooser.getSelectedFile());
+                                Socket downloadSocket = new Socket("localhost", 7777);
+                                OutputStream outputStream = downloadSocket.getOutputStream();
+                                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+
+                                objectOutputStream.writeObject(new FileSend(messageInfo.getOriginalFileName(), messageInfo.getGeneratedFileName()));
+
+                                FileOutputStream fileOutputStream = new FileOutputStream(dir + "\\" + messageInfo.getOriginalFileName());
+                                JFrame downloadFrame = new JFrame();
+                                downloadFrame.setSize(new Dimension(300, 200));
+                                JLabel label = new JLabel("Downloading...");
+                                downloadFrame.setLayout(new FlowLayout());
+                                downloadFrame.add(label);
+                                downloadFrame.setVisible(true);
+
+                                byte[] buffer = new byte[1024];
+                                int bytesRead;
+                                while ((bytesRead = downloadSocket.getInputStream().read(buffer)) != -1) {
+                                    fileOutputStream.write(buffer, 0, bytesRead);
+                                }
+                                label.setText("Download finished");
+                                fileOutputStream.close();
+                                objectOutputStream.close();
+                                downloadSocket.close();
                             }
-                            label.setText("Download finished");
-                            fileOutputStream.close();
-                            objectOutputStream.close();
-                            downloadSocket.close();
+
+                        } catch (UnknownHostException ex) {
+                            throw new RuntimeException(ex);
+                        } catch (IOException ex) {
+                            throw new RuntimeException(ex);
                         }
 
-                    } catch (UnknownHostException ex) {
-                        throw new RuntimeException(ex);
-                    } catch (IOException ex) {
-                        throw new RuntimeException(ex);
-                    }
+                    });
 
-                });
-
-                messageContainer.setPreferredSize(new Dimension(600, 100));
-                messageContainer.setLayout(new FlowLayout());
-                messageContainer.add(username);
-                messageContainer.add(messageScroll);
-                messageContainer.add(downloadBtn);
-                messagesContainer.add(messageContainer);
+                    messageContainer.setPreferredSize(new Dimension(600, 100));
+                    messageContainer.setLayout(new FlowLayout());
+                    messageContainer.add(username);
+                    messageContainer.add(messageScroll);
+                    messageContainer.add(downloadBtn);
+                    messagesContainer.add(messageContainer);
+                }
             }
-        }
-        messagesContainer.validate();
-        messagesContainer.repaint();
-        messagesContainerScroll.validate();
-        JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
-        vertical.setValue(vertical.getMaximum());
+            messagesContainer.validate();
+            messagesContainer.repaint();
+            messagesContainerScroll.validate();
+            JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
+            vertical.setValue(vertical.getMaximum());
 
-        // scroll to bottom when new messages are populated
+            // scroll to bottom when new messages are populated
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void populateMessageToContainer(String sender, String receiver) throws SQLException {
-        messagesContainer.removeAll();
-        Connection connection = DbUtils.getConnection();
-        PreparedStatement preparedStatement = connection.prepareStatement(
-                "SELECT * FROM chat_history WHERE (sender=? AND receiver=?) OR (receiver=? AND sender=?)"
-        );
-        preparedStatement.setString(1, sender);
-        preparedStatement.setString(2, receiver);
-        preparedStatement.setString(3, sender);
-        preparedStatement.setString(4, receiver);
+        try{
+            Socket messagesSocket = new Socket("localhost", 7777);
 
-        ResultSet rs = preparedStatement.executeQuery();
-        while (rs.next()) {
-            MessageInfo messageInfo = new MessageInfo(
-                    rs.getString("sender"),
-                    rs.getString("receiver"),
-                    rs.getString("content"),
-                    rs.getString("createdDate"),
-                    rs.getInt("is_file"),
-                    rs.getString("original_file_name"),
-                    rs.getString("generated_file_name"));
-            if (messageInfo.getIsFile() == 0) {
-                JPanel messageContainer = new JPanel();
-                JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
-                JTextArea theMessage = new JTextArea(messageInfo.getMessage());
-                username.setPreferredSize(new Dimension(500, 30));
-                theMessage.setColumns(50);
-                theMessage.setRows(3);
-                theMessage.setEditable(false);
+            OutputStream messagesSocketOutputStream = messagesSocket.getOutputStream();
+            ObjectOutputStream messagesObjectOutputStream = new ObjectOutputStream(messagesSocketOutputStream);
+
+            Integer option = 6;
+
+            messagesObjectOutputStream.writeObject(option);
+            messagesObjectOutputStream.writeObject(sender);
+            messagesObjectOutputStream.writeObject(receiver);
+
+            InputStream messagesSocketInputStream = messagesSocket.getInputStream();
+            ObjectInputStream messagesObjectInputStream = new ObjectInputStream(messagesSocketInputStream);
+
+            ArrayList<MessageInfo> messageInfos = (ArrayList<MessageInfo>) messagesObjectInputStream.readObject();
+
+            messagesContainer.removeAll();
+            for (MessageInfo messageInfo : messageInfos) {
+                if (messageInfo.getIsFile() == 0) {
+                    JPanel messageContainer = new JPanel();
+                    JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
+                    JTextArea theMessage = new JTextArea(messageInfo.getMessage());
+                    username.setPreferredSize(new Dimension(500, 30));
+                    theMessage.setColumns(50);
+                    theMessage.setRows(3);
+                    theMessage.setEditable(false);
 
 
-                JScrollPane messageScroll = new JScrollPane(theMessage);
+                    JScrollPane messageScroll = new JScrollPane(theMessage);
 
-                messageContainer.setPreferredSize(new Dimension(600, 100));
-                messageContainer.setLayout(new FlowLayout());
-                messageContainer.add(username);
-                messageContainer.add(messageScroll);
-                messagesContainer.add(messageContainer);
-            } else {
-                JPanel messageContainer = new JPanel();
-                JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
-                JTextArea theMessage = new JTextArea(messageInfo.getOriginalFileName() + "\n" + rs.getFloat("file_size") + " MB");
-                username.setPreferredSize(new Dimension(500, 30));
-                theMessage.setColumns(30);
-                theMessage.setRows(3);
-                theMessage.setEditable(false);
-                theMessage.setFont(new Font("Dialog", Font.BOLD, 12));
+                    messageContainer.setPreferredSize(new Dimension(600, 100));
+                    messageContainer.setLayout(new FlowLayout());
+                    messageContainer.add(username);
+                    messageContainer.add(messageScroll);
+                    messagesContainer.add(messageContainer);
+                } else {
+                    JPanel messageContainer = new JPanel();
+                    JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
+                    JTextArea theMessage = new JTextArea(messageInfo.getOriginalFileName() + "\n" + messageInfo.getFileSize() + " MB");
+                    username.setPreferredSize(new Dimension(500, 30));
+                    theMessage.setColumns(30);
+                    theMessage.setRows(3);
+                    theMessage.setEditable(false);
+                    theMessage.setFont(new Font("Dialog", Font.BOLD, 12));
 
-                JScrollPane messageScroll = new JScrollPane(theMessage);
-                JButton downloadBtn = new JButton("Download");
-                downloadBtn.addActionListener(e -> {
-                    try {
-                        JFileChooser chooser = new JFileChooser();
-                        chooser.setCurrentDirectory(new java.io.File("."));
-                        chooser.setDialogTitle("Choose directory to save the file");
-                        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                        //
-                        // disable the "All files" option.
-                        //
-                        chooser.setAcceptAllFileFilterUsed(false);
-                        //
-                        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                            String dir = String.valueOf(chooser.getSelectedFile());
-                            Socket downloadSocket = new Socket("localhost", 7777);
-                            OutputStream outputStream = downloadSocket.getOutputStream();
-                            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                    JScrollPane messageScroll = new JScrollPane(theMessage);
+                    JButton downloadBtn = new JButton("Download");
+                    downloadBtn.addActionListener(e -> {
+                        try {
+                            JFileChooser chooser = new JFileChooser();
+                            chooser.setCurrentDirectory(new java.io.File("."));
+                            chooser.setDialogTitle("Choose directory to save the file");
+                            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                            //
+                            // disable the "All files" option.
+                            //
+                            chooser.setAcceptAllFileFilterUsed(false);
+                            //
+                            if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                                String dir = String.valueOf(chooser.getSelectedFile());
+                                Socket downloadSocket = new Socket("localhost", 7777);
+                                OutputStream outputStream = downloadSocket.getOutputStream();
+                                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
 
-                            objectOutputStream.writeObject(new FileSend(messageInfo.getOriginalFileName(), messageInfo.getGeneratedFileName()));
+                                objectOutputStream.writeObject(new FileSend(messageInfo.getOriginalFileName(), messageInfo.getGeneratedFileName()));
 
-                            FileOutputStream fileOutputStream = new FileOutputStream(dir + "\\" + messageInfo.getOriginalFileName());
-                            JFrame downloadFrame = new JFrame();
-                            downloadFrame.setSize(new Dimension(300, 200));
-                            JLabel label = new JLabel("Downloading...");
-                            downloadFrame.setLayout(new FlowLayout());
-                            downloadFrame.add(label);
-                            downloadFrame.setVisible(true);
+                                FileOutputStream fileOutputStream = new FileOutputStream(dir + "\\" + messageInfo.getOriginalFileName());
+                                JFrame downloadFrame = new JFrame();
+                                downloadFrame.setSize(new Dimension(300, 200));
+                                JLabel label = new JLabel("Downloading...");
+                                downloadFrame.setLayout(new FlowLayout());
+                                downloadFrame.add(label);
+                                downloadFrame.setVisible(true);
 
-                            byte[] buffer = new byte[1024];
-                            int bytesRead;
-                            while ((bytesRead = downloadSocket.getInputStream().read(buffer)) != -1) {
-                                fileOutputStream.write(buffer, 0, bytesRead);
+                                byte[] buffer = new byte[1024];
+                                int bytesRead;
+                                while ((bytesRead = downloadSocket.getInputStream().read(buffer)) != -1) {
+                                    fileOutputStream.write(buffer, 0, bytesRead);
+                                }
+                                label.setText("Download finished");
+                                fileOutputStream.close();
+                                objectOutputStream.close();
+                                downloadSocket.close();
                             }
-                            label.setText("Download finished");
-                            fileOutputStream.close();
-                            objectOutputStream.close();
-                            downloadSocket.close();
+
+                        } catch (UnknownHostException ex) {
+                            throw new RuntimeException(ex);
+                        } catch (IOException ex) {
+                            throw new RuntimeException(ex);
                         }
 
-                    } catch (UnknownHostException ex) {
-                        throw new RuntimeException(ex);
-                    } catch (IOException ex) {
-                        throw new RuntimeException(ex);
-                    }
-
-                });
-                messageContainer.setPreferredSize(new Dimension(600, 100));
-                messageContainer.setLayout(new FlowLayout());
-                messageContainer.add(username);
-                messageContainer.add(messageScroll);
-                messageContainer.add(downloadBtn);
-                messagesContainer.add(messageContainer);
+                    });
+                    messageContainer.setPreferredSize(new Dimension(600, 100));
+                    messageContainer.setLayout(new FlowLayout());
+                    messageContainer.add(username);
+                    messageContainer.add(messageScroll);
+                    messageContainer.add(downloadBtn);
+                    messagesContainer.add(messageContainer);
+                }
             }
-
+            messagesContainer.validate();
+            messagesContainer.repaint();
+            messagesContainerScroll.validate();
+            JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
+            vertical.setValue(vertical.getMaximum());
+            // scroll to bottom when new messages are populated
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
-        messagesContainer.validate();
-        messagesContainer.repaint();
-        messagesContainerScroll.validate();
-        JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
-        vertical.setValue(vertical.getMaximum());
-
-        // scroll to bottom when new messages are populated
-
     }
 
     private void populateGroupChat(JPanel container) throws SQLException {

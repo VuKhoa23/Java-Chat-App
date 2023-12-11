@@ -225,9 +225,9 @@ public class Server {
                                 throw new RuntimeException(e);
                             }
                         }
+                        // return all usernames
                         else if(option == 5){
                             try{
-                                System.out.println("ere");
                                 Connection connection = DbUtils.getConnection();
                                 PreparedStatement stmt = connection.prepareStatement("SELECT username FROM account");
                                 ResultSet rs = stmt.executeQuery();
@@ -239,6 +239,85 @@ public class Server {
                                 // create a data output stream from the output stream so we can send data through it
                                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
                                 objectOutputStream.writeObject(allUsers);
+                                socket.close();
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        // return all messages of specific sender and receiver
+                        else if(option == 6){
+                            try{
+                                String sender = (String) objectInputStream.readObject();
+                                String receiver = (String) objectInputStream.readObject();
+                                Connection connection = DbUtils.getConnection();
+                                PreparedStatement preparedStatement = connection.prepareStatement(
+                                        "SELECT * FROM chat_history WHERE (sender=? AND receiver=?) OR (receiver=? AND sender=?)"
+                                );
+                                preparedStatement.setString(1, sender);
+                                preparedStatement.setString(2, receiver);
+                                preparedStatement.setString(3, sender);
+                                preparedStatement.setString(4, receiver);
+                                ResultSet rs = preparedStatement.executeQuery();
+                                ArrayList<MessageInfo> messageInfos = new ArrayList<>();
+                                while(rs.next()){
+                                    MessageInfo messageInfo = new MessageInfo(
+                                            rs.getString("sender"),
+                                            rs.getString("receiver"),
+                                            rs.getString("content"),
+                                            rs.getString("createdDate"),
+                                            rs.getInt("is_file"),
+                                            rs.getString("original_file_name"),
+                                            rs.getString("generated_file_name"));
+                                    if(messageInfo.getIsFile() == 0){
+                                        messageInfo.setFileSize(0);
+                                    }else{
+                                        messageInfo.setFileSize(rs.getFloat("file_size"));
+                                    }
+                                    messageInfos.add(messageInfo);
+                                }
+                                OutputStream outputStream = socket.getOutputStream();
+                                // create a data output stream from the output stream so we can send data through it
+                                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                objectOutputStream.writeObject(messageInfos);
+                                connection.close();
+                                socket.close();
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        // get all messages of a specific group
+                        else if(option == 7){
+                            try{
+                                ArrayList<MessageInfo> messageInfos = new ArrayList<>();
+                                Integer groupId = (Integer) objectInputStream.readObject();
+                                Connection connection = DbUtils.getConnection();
+                                PreparedStatement preparedStatement = connection.prepareStatement(
+                                        "SELECT * FROM chat_history WHERE group_id=?"
+                                );
+                                preparedStatement.setInt(1, groupId);
+                                ResultSet rs = preparedStatement.executeQuery();
+                                while(rs.next()){
+                                    MessageInfo messageInfo = new MessageInfo(
+                                            rs.getString("sender"),
+                                            rs.getString("content"),
+                                            rs.getString("createdDate"),
+                                            rs.getInt("is_groupChat"),
+                                            rs.getInt("group_id"),
+                                            rs.getInt("is_file"),
+                                            rs.getString("original_file_name"),
+                                            rs.getString("generated_file_name"));
+                                    if(messageInfo.getIsFile() == 0){
+                                        messageInfo.setFileSize(0);
+                                    }else{
+                                        messageInfo.setFileSize(rs.getFloat("file_size"));
+                                    }
+                                    messageInfos.add(messageInfo);
+                                }
+                                OutputStream outputStream = socket.getOutputStream();
+                                // create a data output stream from the output stream so we can send data through it
+                                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                objectOutputStream.writeObject(messageInfos);
+                                connection.close();
                                 socket.close();
                             } catch (SQLException e) {
                                 throw new RuntimeException(e);
