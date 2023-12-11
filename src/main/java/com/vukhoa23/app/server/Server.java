@@ -125,6 +125,26 @@ public class Server {
                                             throw new RuntimeException(e);
                                         }
                                     }
+                                    else{
+                                        try{
+                                            Connection connection = DbUtils.getConnection();
+                                            PreparedStatement stmt = connection.prepareStatement(
+                                                    "INSERT INTO chat_history(sender, createdDate, is_groupChat, group_id ,is_file, original_file_name, generated_file_name, file_size) values(?, ?, 1, ? ,1, ?, ?, ?)"
+                                            );
+
+                                            stmt.setString(1, messageInfo.getUsername());
+                                            stmt.setString(2, new Date().toString());
+                                            stmt.setInt(3, messageInfo.getGroupId());
+                                            stmt.setString(4, messageInfo.getOriginalFileName());
+                                            stmt.setString(5, messageInfo.getGeneratedFileName());
+                                            stmt.setFloat(6, messageInfo.getFileSize());
+                                            stmt.executeUpdate();
+                                            connection.close();
+                                        } catch (SQLException e) {
+                                            throw new RuntimeException(e);
+                                        }
+
+                                    }
                                 }
                                 connectedSocket.forEach((connected) -> {
                                     try {
@@ -166,7 +186,7 @@ public class Server {
                                 }
                             });
                         }
-                        // save user file
+                        // save user upload file
                         else if (option == 3) {
                             FileSend fileSend = (FileSend) objectInputStream.readObject();
                             System.out.println(fileSend);
@@ -179,7 +199,7 @@ public class Server {
                             while ((bytesRead = inputStream.read(buffer)) != -1) {
                                 fileOutputStream.write(buffer, 0, bytesRead);
                             }
-
+                            fileOutputStream.close();
                         }
                     } else if (object instanceof GroupCreated) {
                         GroupCreated groupCreated = (GroupCreated) object;
@@ -206,6 +226,7 @@ public class Server {
                         }
                         socket.close();
                         fileOutputStream.close();
+                        fileInputStream.close();
                     }
                 } catch (IOException err) {
                     System.out.println(err);

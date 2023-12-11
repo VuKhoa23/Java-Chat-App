@@ -186,7 +186,6 @@ public class HomePage extends JPanel {
                         FileInputStream fileInputStream = new FileInputStream(selectedFile);
                         OutputStream fileOutputStream = fileSocket.getOutputStream();
 
-
                         byte[] buffer = new byte[1024];
                         int bytesRead;
                         while ((bytesRead = fileInputStream.read(buffer)) != -1) {
@@ -196,6 +195,7 @@ public class HomePage extends JPanel {
                         label.setText("File sent");
 
                         fileSocket.close();
+                        fileOutputStream.close();
                         fileOutputStream.close();
 
                         MessageInfo messageInfo = new MessageInfo(ClientFrame.username, ClientFrame.currentReceiver,
@@ -216,30 +216,20 @@ public class HomePage extends JPanel {
                         fileSocket.close();
                         fileOutputStream.close();
 
-                        Connection connection = DbUtils.getConnection();
-                        PreparedStatement stmt = connection.prepareStatement(
-                                "INSERT INTO chat_history(sender, createdDate, is_groupChat, group_id ,is_file, original_file_name, generated_file_name, file_size) values(?, ?, 1, ? ,1, ?, ?, ?)"
-                        );
                         MessageInfo messageInfo = new MessageInfo(ClientFrame.username, "",
                                 new Date().toString(), 1, ClientFrame.groupId, 1,
                                 fileSend.getOriginalName(), fileSend.getGeneratedName());
-                        stmt.setString(1, ClientFrame.username);
-                        stmt.setString(2, new Date().toString());
-                        stmt.setInt(3, ClientFrame.groupId);
-                        stmt.setString(4, fileSend.getOriginalName());
-                        stmt.setString(5, fileSend.getGeneratedName());
-                        stmt.setFloat(6, fileSize);
+                        messageInfo.setFileSize(fileSize);
+                        messageInfo.setQuery("INSERT INTO chat_history(sender, createdDate, is_groupChat, group_id ,is_file, original_file_name, generated_file_name, file_size) values(?, ?, 1, ? ,1, ?, ?, ?)");
 
-                        stmt.executeUpdate();
-                        connection.close();
+                        fileInputStream.close();
+                        fileOutputStream.close();
                         objectOutputStream.writeObject(messageInfo);
                     }
                 }
             } catch (FileNotFoundException ex) {
                 throw new RuntimeException(ex);
             } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            } catch (SQLException ex) {
                 throw new RuntimeException(ex);
             }
 
@@ -336,6 +326,51 @@ public class HomePage extends JPanel {
 
                 JScrollPane messageScroll = new JScrollPane(theMessage);
                 JButton downloadBtn = new JButton("Download");
+                downloadBtn.addActionListener(e -> {
+                    try {
+                        JFileChooser chooser = new JFileChooser();
+                        chooser.setCurrentDirectory(new java.io.File("."));
+                        chooser.setDialogTitle("Choose directory to save the file");
+                        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                        //
+                        // disable the "All files" option.
+                        //
+                        chooser.setAcceptAllFileFilterUsed(false);
+                        //
+                        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                            String dir = String.valueOf(chooser.getSelectedFile());
+                            Socket downloadSocket = new Socket("localhost", 7777);
+                            OutputStream outputStream = downloadSocket.getOutputStream();
+                            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+
+                            objectOutputStream.writeObject(new FileSend(messageInfo.getOriginalFileName(), messageInfo.getGeneratedFileName()));
+
+                            FileOutputStream fileOutputStream = new FileOutputStream(dir + "\\" + messageInfo.getOriginalFileName());
+                            JFrame downloadFrame = new JFrame();
+                            downloadFrame.setSize(new Dimension(300, 200));
+                            JLabel label = new JLabel("Downloading...");
+                            downloadFrame.setLayout(new FlowLayout());
+                            downloadFrame.add(label);
+                            downloadFrame.setVisible(true);
+
+                            byte[] buffer = new byte[1024];
+                            int bytesRead;
+                            while ((bytesRead = downloadSocket.getInputStream().read(buffer)) != -1) {
+                                fileOutputStream.write(buffer, 0, bytesRead);
+                            }
+                            label.setText("Download finished");
+                            fileOutputStream.close();
+                            objectOutputStream.close();
+                            downloadSocket.close();
+                        }
+
+                    } catch (UnknownHostException ex) {
+                        throw new RuntimeException(ex);
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+
+                });
 
                 messageContainer.setPreferredSize(new Dimension(600, 100));
                 messageContainer.setLayout(new FlowLayout());
