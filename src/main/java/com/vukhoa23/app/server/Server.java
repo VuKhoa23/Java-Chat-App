@@ -9,9 +9,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class Server {
     public static ArrayList<SocketInfo> connectedSocket = new ArrayList<>();
@@ -124,9 +126,8 @@ public class Server {
                                         } catch (SQLException e) {
                                             throw new RuntimeException(e);
                                         }
-                                    }
-                                    else{
-                                        try{
+                                    } else {
+                                        try {
                                             Connection connection = DbUtils.getConnection();
                                             PreparedStatement stmt = connection.prepareStatement(
                                                     "INSERT INTO chat_history(sender, createdDate, is_groupChat, group_id ,is_file, original_file_name, generated_file_name, file_size) values(?, ?, 1, ? ,1, ?, ?, ?)"
@@ -200,6 +201,32 @@ public class Server {
                                 fileOutputStream.write(buffer, 0, bytesRead);
                             }
                             fileOutputStream.close();
+                        }
+                        // send groups that user belongs to
+                        else if (option == 4) {
+                            try {
+                                String query = "SELECT group_id, group_chat.name\n" +
+                                        "FROM users_groups\n" +
+                                        "JOIN group_chat\n" +
+                                        "ON group_chat.id = users_groups.group_id\n" +
+                                        "WHERE users_groups.username =?";
+                                String username = (String) objectInputStream.readObject();
+                                Connection connection = DbUtils.getConnection();
+                                PreparedStatement stmt = connection.prepareStatement(query);
+                                stmt.setString(1, username);
+                                ResultSet rs = stmt.executeQuery();
+                                ArrayList<GroupQueryResult> groups = new ArrayList<>();
+                                while(rs.next()){
+                                    groups.add(new GroupQueryResult(rs.getInt(1), rs.getString(2)));
+                                }
+                                OutputStream outputStream = socket.getOutputStream();
+                                // create a data output stream from the output stream so we can send data through it
+                                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                objectOutputStream.writeObject(groups);
+                                socket.close();
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
                         }
                     } else if (object instanceof GroupCreated) {
                         GroupCreated groupCreated = (GroupCreated) object;

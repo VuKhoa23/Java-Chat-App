@@ -1,9 +1,6 @@
 package com.vukhoa23.app.client.ClientUI;
 
-import com.vukhoa23.app.client.entity.FileSend;
-import com.vukhoa23.app.client.entity.GroupCreated;
-import com.vukhoa23.app.client.entity.MessageInfo;
-import com.vukhoa23.app.client.entity.OnlineUserInfo;
+import com.vukhoa23.app.client.entity.*;
 import com.vukhoa23.utils.DbUtils;
 import com.vukhoa23.utils.FileUtils;
 
@@ -504,46 +501,62 @@ public class HomePage extends JPanel {
     }
 
     private void populateGroupChat(JPanel container) throws SQLException {
-        container.removeAll();
-        JLabel label = new JLabel("Your groups", SwingConstants.CENTER);
-        label.setPreferredSize(new Dimension(190, 30));
-        label.setMaximumSize(new Dimension(190, 30));
-        label.setMinimumSize(new Dimension(190, 30));
-        container.add(label);
-        String query = "SELECT group_id, group_chat.name\n" +
-                "FROM users_groups\n" +
-                "JOIN group_chat\n" +
-                "ON group_chat.id = users_groups.group_id\n" +
-                "WHERE users_groups.username =?";
-        Connection connection = DbUtils.getConnection();
-        PreparedStatement stmt = connection.prepareStatement(query);
-        stmt.setString(1, ClientFrame.username);
-        ResultSet rs = stmt.executeQuery();
-        while (rs.next()) {
-            int groupId = rs.getInt(1);
-            String groupName = rs.getString(2);
-            JButton group = new JButton(groupName);
-            group.setPreferredSize(new Dimension(190, 30));
-            group.setMaximumSize(new Dimension(190, 30));
-            group.setMinimumSize(new Dimension(190, 30));
-            container.add(group);
-            group.addActionListener(e -> {
-                ClientFrame.isGroupChat = true;
-                ClientFrame.groupId = groupId;
-                receiverBox.removeAll();
-                JLabel theReceiver = new JLabel("Chatting with group: " + groupName);
-                receiverBox.add(theReceiver);
-                receiverBox.revalidate();
-                receiverBox.repaint();
-                try {
-                    populateGroupChatToContainer(ClientFrame.username, ClientFrame.groupId);
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                }
-            });
+        try{
+            Socket groupChatSocket = new Socket("localhost", 7777);
+            OutputStream outputStream = groupChatSocket.getOutputStream();
+            ObjectOutputStream groupObjectOutputStream = new ObjectOutputStream(outputStream);
+
+            JLabel label = new JLabel("Your groups", SwingConstants.CENTER);
+            label.setPreferredSize(new Dimension(190, 30));
+            label.setMaximumSize(new Dimension(190, 30));
+            label.setMinimumSize(new Dimension(190, 30));
+            container.add(label);
+
+            Integer option = 4;
+            groupObjectOutputStream.writeObject(option);
+            groupObjectOutputStream.writeObject(ClientFrame.username);
+
+            InputStream inputStream = groupChatSocket.getInputStream();
+            ObjectInputStream groupObjectInputStream = new ObjectInputStream(inputStream);
+
+            List<GroupQueryResult> returnedGroups = (List<GroupQueryResult>) groupObjectInputStream.readObject();
+            groupObjectOutputStream.close();
+            groupObjectInputStream.close();
+            groupChatSocket.close();
+            container.removeAll();
+            for (GroupQueryResult rs : returnedGroups) {
+                int groupId = rs.getGroupId();
+                String groupName = rs.getGroupName();
+                JButton group = new JButton(groupName);
+                group.setPreferredSize(new Dimension(190, 30));
+                group.setMaximumSize(new Dimension(190, 30));
+                group.setMinimumSize(new Dimension(190, 30));
+                container.add(group);
+                group.addActionListener(e -> {
+                    ClientFrame.isGroupChat = true;
+                    ClientFrame.groupId = groupId;
+                    receiverBox.removeAll();
+                    JLabel theReceiver = new JLabel("Chatting with group: " + groupName);
+                    receiverBox.add(theReceiver);
+                    receiverBox.revalidate();
+                    receiverBox.repaint();
+                    try {
+                        populateGroupChatToContainer(ClientFrame.username, ClientFrame.groupId);
+                    } catch (SQLException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                });
+            }
+            container.revalidate();
+            container.repaint();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
-        container.revalidate();
-        container.repaint();
+
     }
 
     public void populateOnlineUsers(ArrayList<OnlineUserInfo> onlineUserInfos, JPanel container) throws SQLException {
