@@ -197,23 +197,13 @@ public class HomePage extends JPanel {
 
                         fileSocket.close();
                         fileOutputStream.close();
-                        Connection connection = DbUtils.getConnection();
-                        PreparedStatement stmt = connection.prepareStatement(
-                                "INSERT INTO chat_history(sender, receiver, createdDate, is_groupChat, is_file, original_file_name, generated_file_name, file_size) values(?, ?, ?, 0, 1, ?, ?, ?)"
-                        );
+
                         MessageInfo messageInfo = new MessageInfo(ClientFrame.username, ClientFrame.currentReceiver,
                                 "", new Date().toString(), 1, fileSend.getOriginalName(), fileSend.getGeneratedName());
-                        stmt.setString(1, ClientFrame.username);
-                        stmt.setString(2, ClientFrame.currentReceiver);
-                        stmt.setString(3, new Date().toString());
-                        stmt.setString(4, fileSend.getOriginalName());
-                        stmt.setString(5, fileSend.getGeneratedName());
-                        System.out.println(fileSize);
-                        stmt.setFloat(6, fileSize);
-                        stmt.executeUpdate();
-                        connection.close();
+                        messageInfo.setIsGroupChat(0);
+                        messageInfo.setQuery("INSERT INTO chat_history(sender, receiver, createdDate, is_groupChat, is_file, original_file_name, generated_file_name, file_size) values(?, ?, ?, 0, 1, ?, ?, ?)");
+                        messageInfo.setFileSize(fileSize);
                         objectOutputStream.writeObject(messageInfo);
-                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
                     } else {
                         FileInputStream fileInputStream = new FileInputStream(selectedFile);
                         OutputStream fileOutputStream = fileSocket.getOutputStream();
@@ -446,8 +436,8 @@ public class HomePage extends JPanel {
                             while ((bytesRead = downloadSocket.getInputStream().read(buffer)) != -1) {
                                 fileOutputStream.write(buffer, 0, bytesRead);
                             }
-
                             label.setText("Download finished");
+                            fileOutputStream.close();
                             objectOutputStream.close();
                             downloadSocket.close();
                         }

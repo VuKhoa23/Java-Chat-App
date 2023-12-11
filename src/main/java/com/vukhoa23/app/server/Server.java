@@ -1,5 +1,6 @@
 package com.vukhoa23.app.server;
 
+import com.vukhoa23.app.client.ClientUI.ClientFrame;
 import com.vukhoa23.app.client.entity.*;
 import com.vukhoa23.utils.DbUtils;
 
@@ -10,6 +11,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
 
 public class Server {
     public static ArrayList<SocketInfo> connectedSocket = new ArrayList<>();
@@ -89,9 +91,8 @@ public class Server {
                                         } catch (SQLException e) {
                                             throw new RuntimeException(e);
                                         }
-                                    }
-                                    else if(messageInfo.getIsGroupChat() == 1 && messageInfo.getIsFile() == 0){
-                                        try{
+                                    } else if (messageInfo.getIsGroupChat() == 1 && messageInfo.getIsFile() == 0) {
+                                        try {
                                             Connection connection = DbUtils.getConnection();
                                             PreparedStatement stmt = connection.prepareStatement(
                                                     "INSERT INTO chat_history(sender, content, createdDate, is_groupChat, group_id, is_file) VALUES(?, ?, ?, ?, ?, 0)"
@@ -101,6 +102,23 @@ public class Server {
                                             stmt.setString(3, messageInfo.getCreatedDate());
                                             stmt.setInt(4, messageInfo.isGroupChat());
                                             stmt.setInt(5, messageInfo.getGroupId());
+                                            stmt.executeUpdate();
+                                            connection.close();
+                                        } catch (SQLException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    } else if (messageInfo.getIsGroupChat() == 0 && messageInfo.getIsFile() == 1) {
+                                        try {
+                                            Connection connection = DbUtils.getConnection();
+                                            PreparedStatement stmt = connection.prepareStatement(
+                                                    "INSERT INTO chat_history(sender, receiver, createdDate, is_groupChat, is_file, original_file_name, generated_file_name, file_size) values(?, ?, ?, 0, 1, ?, ?, ?)"
+                                            );
+                                            stmt.setString(1, messageInfo.getUsername());
+                                            stmt.setString(2, messageInfo.getReceiver());
+                                            stmt.setString(3, new Date().toString());
+                                            stmt.setString(4, messageInfo.getOriginalFileName());
+                                            stmt.setString(5, messageInfo.getGeneratedFileName());
+                                            stmt.setFloat(6, messageInfo.getFileSize());
                                             stmt.executeUpdate();
                                             connection.close();
                                         } catch (SQLException e) {

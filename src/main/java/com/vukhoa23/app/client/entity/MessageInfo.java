@@ -10,6 +10,7 @@ public class MessageInfo implements Serializable {
     private String createdDate;
     private int isGroupChat;
     private int groupId;
+    private float fileSize;
 
     private int isFile = 0;
 
@@ -104,6 +105,13 @@ public class MessageInfo implements Serializable {
         this.groupId = groupId;
     }
 
+    public float getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(float fileSize) {
+        this.fileSize = fileSize;
+    }
 
     public MessageInfo(String username, String receiver, String message, String createdDate) {
         this.username = username;
