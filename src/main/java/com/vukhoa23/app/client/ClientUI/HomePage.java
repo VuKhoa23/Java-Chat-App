@@ -117,8 +117,6 @@ public class HomePage extends JPanel {
                     Object object = (Object) objectInputStream.readObject();
                     if (object instanceof MessageInfo) {
                         MessageInfo messageInfo = (MessageInfo) object;
-                        System.out.println(messageInfo.getUsername());
-                        System.out.printf(messageInfo.getReceiver());
                         if (messageInfo.getMessage().equals("quit")) {
                             break;
                         }
@@ -287,30 +285,16 @@ public class HomePage extends JPanel {
                             1,
                             ClientFrame.groupId
                     );
-                    if (!theString.equals("quit")) {
-                        Connection connection = DbUtils.getConnection();
-                        PreparedStatement stmt = connection.prepareStatement(
-                                "INSERT INTO chat_history(sender, content, createdDate, is_groupChat, group_id, is_file) VALUES(?, ?, ?, ?, ?, 0)"
-                        );
-                        stmt.setString(1, messageInfo.getUsername());
-                        stmt.setString(2, messageInfo.getMessage());
-                        stmt.setString(3, messageInfo.getCreatedDate());
-                        stmt.setInt(4, messageInfo.isGroupChat());
-                        stmt.setInt(5, messageInfo.getGroupId());
-                        stmt.executeUpdate();
-                        connection.close();
-                    }
+                    messageInfo.setIsFile(0);
+                    messageInfo.setQuery("INSERT INTO chat_history(sender, content, createdDate, is_groupChat, group_id, is_file) VALUES(?, ?, ?, ?, ?, 0)");
                     // write the message we want to send
                     objectOutputStream.writeObject(messageInfo);
                     // populate messages
                     //populateGroupChatToContainer(ClientFrame.username, ClientFrame.groupId);
                     //objectOutputStream.flush();
                 }
-
             } catch (IOException err) {
                 throw new RuntimeException("Error when sending message from client");
-            } catch (SQLException ex) {
-                throw new RuntimeException(ex);
             }
         });
     }
@@ -360,12 +344,13 @@ public class HomePage extends JPanel {
                 theMessage.setEditable(false);
                 theMessage.setFont(new Font("Dialog", Font.BOLD, 12));
 
+                JScrollPane messageScroll = new JScrollPane(theMessage);
                 JButton downloadBtn = new JButton("Download");
 
                 messageContainer.setPreferredSize(new Dimension(600, 100));
                 messageContainer.setLayout(new FlowLayout());
                 messageContainer.add(username);
-                messageContainer.add(theMessage);
+                messageContainer.add(messageScroll);
                 messageContainer.add(downloadBtn);
                 messagesContainer.add(messageContainer);
             }

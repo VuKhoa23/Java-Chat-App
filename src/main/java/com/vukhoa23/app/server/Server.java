@@ -72,7 +72,7 @@ public class Server {
                                     });
                                     break;
                                 } else {
-                                    if (messageInfo.getIsGroupChat() == 0) {
+                                    if (messageInfo.getIsGroupChat() == 0 && messageInfo.getIsFile() == 0) {
                                         try {
                                             // connect to db and save the message
                                             Connection connection = DbUtils.getConnection();
@@ -84,6 +84,23 @@ public class Server {
                                             stmt.setString(3, messageInfo.getMessage());
                                             stmt.setString(4, messageInfo.getCreatedDate().toString());
                                             stmt.setInt(5, 0);
+                                            stmt.executeUpdate();
+                                            connection.close();
+                                        } catch (SQLException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    }
+                                    else if(messageInfo.getIsGroupChat() == 1 && messageInfo.getIsFile() == 0){
+                                        try{
+                                            Connection connection = DbUtils.getConnection();
+                                            PreparedStatement stmt = connection.prepareStatement(
+                                                    "INSERT INTO chat_history(sender, content, createdDate, is_groupChat, group_id, is_file) VALUES(?, ?, ?, ?, ?, 0)"
+                                            );
+                                            stmt.setString(1, messageInfo.getUsername());
+                                            stmt.setString(2, messageInfo.getMessage());
+                                            stmt.setString(3, messageInfo.getCreatedDate());
+                                            stmt.setInt(4, messageInfo.isGroupChat());
+                                            stmt.setInt(5, messageInfo.getGroupId());
                                             stmt.executeUpdate();
                                             connection.close();
                                         } catch (SQLException e) {
