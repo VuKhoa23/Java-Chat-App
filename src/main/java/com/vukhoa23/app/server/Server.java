@@ -6,6 +6,7 @@ import com.vukhoa23.utils.DbUtils;
 
 import javax.swing.*;
 import java.io.*;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.*;
@@ -20,9 +21,9 @@ public class Server {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         ServerSocket ss = new ServerSocket(7777);
+        System.out.println("Running on " + InetAddress.getLocalHost().getHostAddress() + ":" + AppConstants.PORT);
         while (true) {
             Socket socket = ss.accept(); // blocking call, this will wait until a connection is attempted on this port.
-            System.out.println("Connection from " + socket + "!");
 
             Thread receiveThread = new Thread(() -> {
                 try {
@@ -68,9 +69,7 @@ public class Server {
                             Object receivedObject = objectInputStream.readObject();
                             if (receivedObject instanceof MessageInfo) {
                                 MessageInfo messageInfo = (MessageInfo) receivedObject;
-                                System.out.println(messageInfo);
                                 if (messageInfo.getMessage().equals("quit")) {
-                                    System.out.println(messageInfo.getUsername() + " disconnected");
                                     OutputStream quitOutputStream = socket.getOutputStream();
                                     // create a DataInputStream so we can read data from it.
                                     ObjectOutputStream quitObjectOutputStream = new ObjectOutputStream(quitOutputStream);
@@ -172,7 +171,6 @@ public class Server {
                                         throw new RuntimeException("Error when send messages to connected clients");
                                     }
                                 });
-                                System.out.println(connectedSocket);
                             }
                         }
                     } else if (object instanceof Integer) {
@@ -206,7 +204,6 @@ public class Server {
                         // save user upload file
                         else if (option == 3) {
                             FileSend fileSend = (FileSend) objectInputStream.readObject();
-                            System.out.println(fileSend);
                             File dir = new File("./files");
                             dir.mkdirs();
                             FileOutputStream fileOutputStream = new FileOutputStream("./files/" + fileSend.getGeneratedName());
@@ -346,7 +343,6 @@ public class Server {
                         } else if (option == 8) {
                             try{
                                 String groupName = (String) objectInputStream.readObject();
-                                System.out.println(groupName);
                                 Connection connection = DbUtils.getConnection();
                                 PreparedStatement createGroup = connection.prepareStatement(
                                         "INSERT INTO group_chat(name) VALUES(?)",
@@ -439,7 +435,6 @@ public class Server {
                         }
                     } else if (object instanceof FileSend) {
                         FileSend fileSend = (FileSend) object;
-                        System.out.println("User want to download: " + fileSend.getGeneratedName());
                         File fileToSend = new File("./files/" + fileSend.getGeneratedName());
 
                         FileInputStream fileInputStream = new FileInputStream(fileToSend);

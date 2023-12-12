@@ -1,6 +1,7 @@
 package com.vukhoa23.app.client.ClientUI;
 
 import com.vukhoa23.app.client.entity.AccountInfo;
+import com.vukhoa23.app.client.entity.AppConstants;
 import com.vukhoa23.app.client.entity.OnlineUserInfo;
 
 import javax.swing.*;
@@ -9,6 +10,7 @@ import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+
 
 public class LoginRegisterForm extends JPanel {
     public class LoginForm extends JPanel {
@@ -60,7 +62,7 @@ public class LoginRegisterForm extends JPanel {
                     String inputUsername = usernameInp.getText();
                     String inputPassword = passwordInp.getText();
                     // get user from server
-                    Socket getUserSocket = new Socket("localhost", 7777);
+                    Socket getUserSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
                     OutputStream getUserOutputStream = getUserSocket.getOutputStream();
                     ObjectOutputStream getUserObjectOutputStream = new ObjectOutputStream(getUserOutputStream);
                     Integer getUserOption = 10;
@@ -87,8 +89,7 @@ public class LoginRegisterForm extends JPanel {
                                     "Alert",
                                     JOptionPane.ERROR_MESSAGE);
                         } else {
-                            Socket socket = new Socket("localhost", 7777);
-                            System.out.println("Connected!");
+                            Socket socket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
                             OutputStream outputStream = socket.getOutputStream();
                             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
                             Integer option = 1;
@@ -99,9 +100,7 @@ public class LoginRegisterForm extends JPanel {
                             ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
                             ArrayList<OnlineUserInfo> onlineUserInfos = (ArrayList<OnlineUserInfo>) objectInputStream.readObject();
                             boolean isLoggedIn = false;
-                            System.out.println(onlineUserInfos);
                             for (OnlineUserInfo onlineUserInfo : onlineUserInfos) {
-                                System.out.println(onlineUserInfo.getUsername());
                                 if (accountInfo.getUsername().equals(onlineUserInfo.getUsername())) {
                                     isLoggedIn = true;
                                     break;
@@ -136,7 +135,7 @@ public class LoginRegisterForm extends JPanel {
                     String inputPassword = passwordInp.getText();
                     // handle button events
 
-                    Socket getUserSocket = new Socket("localhost", 7777);
+                    Socket getUserSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
                     OutputStream getUserOutputStream = getUserSocket.getOutputStream();
                     ObjectOutputStream getUserObjectOutputStream = new ObjectOutputStream(getUserOutputStream);
                     Integer getUserOption = 10;
@@ -155,7 +154,7 @@ public class LoginRegisterForm extends JPanel {
                                 "Alert",
                                 JOptionPane.ERROR_MESSAGE);
                     } else {
-                        Socket createAccountSocket = new Socket("localhost", 7777);
+                        Socket createAccountSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
                         OutputStream createAccountOutputStream = createAccountSocket.getOutputStream();
                         ObjectOutputStream createAccountObjectOutputStream = new ObjectOutputStream(createAccountOutputStream);
                         Integer createAccountOption = 11;
@@ -170,8 +169,7 @@ public class LoginRegisterForm extends JPanel {
                                 "Alert",
                                 JOptionPane.INFORMATION_MESSAGE);
                         try {
-                            Socket socket = new Socket("localhost", 7777);
-                            System.out.println("Connected!");
+                            Socket socket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
                             OutputStream outputStream = socket.getOutputStream();
                             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
                             Integer option = 2;

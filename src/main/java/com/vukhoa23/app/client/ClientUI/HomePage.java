@@ -21,8 +21,7 @@ public class HomePage extends JPanel {
 
     HomePage(String theUsername) throws IOException {
         // connect to server
-        Socket socket = new Socket("localhost", 7777);
-        System.out.println("Connected!");
+        Socket socket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
         // get the output stream from the socket.
         OutputStream outputStream = socket.getOutputStream();
         // create a data output stream from the output stream so we can send data through it
@@ -131,7 +130,7 @@ public class HomePage extends JPanel {
                 JFileChooser fileChooser = new JFileChooser();
                 int returnValue = fileChooser.showOpenDialog(null);
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
-                    Socket fileSocket = new Socket("localhost", 7777);
+                    Socket fileSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
                     OutputStream socketOutputStream = fileSocket.getOutputStream();
                     // create a data output stream from the output stream so we can send data through it
                     ObjectOutputStream socketObjectOutputStream = new ObjectOutputStream(socketOutputStream);
@@ -262,7 +261,7 @@ public class HomePage extends JPanel {
     public void populateGroupChatToContainer(String theUsername, int groupId) {
         try {
             messagesContainer.removeAll();
-            Socket groupMessagesSocket = new Socket("localhost", 7777);
+            Socket groupMessagesSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
             OutputStream groupMessagesSocketOutputStream = groupMessagesSocket.getOutputStream();
             ObjectOutputStream groupMessagesObjectOutputStream = new ObjectOutputStream(groupMessagesSocketOutputStream);
 
@@ -318,7 +317,7 @@ public class HomePage extends JPanel {
                             //
                             if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                                 String dir = String.valueOf(chooser.getSelectedFile());
-                                Socket downloadSocket = new Socket("localhost", 7777);
+                                Socket downloadSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
                                 OutputStream outputStream = downloadSocket.getOutputStream();
                                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
 
@@ -378,7 +377,7 @@ public class HomePage extends JPanel {
     public void populateMessageToContainer(String sender, String receiver) {
         try {
             messagesContainer.removeAll();
-            Socket messagesSocket = new Socket("localhost", 7777);
+            Socket messagesSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
 
             OutputStream messagesSocketOutputStream = messagesSocket.getOutputStream();
             ObjectOutputStream messagesObjectOutputStream = new ObjectOutputStream(messagesSocketOutputStream);
@@ -437,7 +436,7 @@ public class HomePage extends JPanel {
                             //
                             if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                                 String dir = String.valueOf(chooser.getSelectedFile());
-                                Socket downloadSocket = new Socket("localhost", 7777);
+                                Socket downloadSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
                                 OutputStream outputStream = downloadSocket.getOutputStream();
                                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
 
@@ -495,7 +494,7 @@ public class HomePage extends JPanel {
     private void populateGroupChat(JPanel container) {
         try {
             container.removeAll();
-            Socket groupChatSocket = new Socket("localhost", 7777);
+            Socket groupChatSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
             OutputStream outputStream = groupChatSocket.getOutputStream();
             ObjectOutputStream groupObjectOutputStream = new ObjectOutputStream(outputStream);
 
@@ -558,7 +557,7 @@ public class HomePage extends JPanel {
             label.setMinimumSize(new Dimension(190, 30));
             container.add(label);
 
-            Socket onlineUsersSocket = new Socket("localhost", 7777);
+            Socket onlineUsersSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
             OutputStream outputStream = onlineUsersSocket.getOutputStream();
             ObjectOutputStream onlineObjectOutputStream = new ObjectOutputStream(outputStream);
             Integer option = 5;
