@@ -12,9 +12,6 @@ import java.awt.event.WindowEvent;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -93,25 +90,20 @@ public class HomePage extends JPanel {
         groupChatContainerScroll.setBounds(800, 50, 200, 500);
         this.add(groupChatContainerScroll);
 
-
         messagesContainer.setBackground(Color.darkGray);
         messagesContainer.setLayout(new GridLayout(0, 1));
         messagesContainerScroll.setBounds(200, 50, 600, 500);
         this.add(messagesContainerScroll);
 
+
         //create thread that receive message from server
         Thread receiveThread = new Thread(() -> {
-            try {
-                populateGroupChat(groupChatContainer);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
             try {
                 while (true) {
                     // create a DataInputStream so we can read data from it.
                     InputStream inputStream = socket.getInputStream();
                     ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
-                    Object object = (Object) objectInputStream.readObject();
+                    Object object = objectInputStream.readObject();
                     if (object instanceof MessageInfo) {
                         MessageInfo messageInfo = (MessageInfo) object;
                         if (messageInfo.getMessage().equals("quit")) {
@@ -123,7 +115,6 @@ public class HomePage extends JPanel {
                         } else if (ClientFrame.isGroupChat != null && ClientFrame.isGroupChat && (messageInfo.getGroupId() == ClientFrame.groupId)) {
                             populateGroupChatToContainer(messageInfo.getUsername(), messageInfo.getGroupId());
                         } else if (ClientFrame.currentReceiver != null && messageInfo.getReceiver() != null && (messageInfo.getReceiver().equals(ClientFrame.currentReceiver)) && (ClientFrame.username.equals(messageInfo.getUsername()))) {
-                            System.out.println("here");
                             populateMessageToContainer(messageInfo.getUsername(), messageInfo.getReceiver());
                         }
                     } else if (object instanceof List) {
@@ -132,11 +123,12 @@ public class HomePage extends JPanel {
                     } else if (object instanceof GroupCreated) {
                         populateGroupChat(groupChatContainer);
                     }
+                    else if(object instanceof Integer){
+                        populateGroupChat(groupChatContainer);
+                    }
                 }
-            } catch (IOException | SQLException err) {
-                System.out.println("Error when receive message from client");
-                System.exit(0);
-            } catch (ClassNotFoundException e) {
+                System.exit(1);
+            } catch (ClassNotFoundException | IOException e) {
                 throw new RuntimeException(e);
             }
         });
@@ -277,8 +269,9 @@ public class HomePage extends JPanel {
     }
 
 
-    public void populateGroupChatToContainer(String theUsername, int groupId) throws SQLException {
-        try{
+    public void populateGroupChatToContainer(String theUsername, int groupId) {
+        try {
+            messagesContainer.removeAll();
             Socket groupMessagesSocket = new Socket("localhost", 7777);
             OutputStream groupMessagesSocketOutputStream = groupMessagesSocket.getOutputStream();
             ObjectOutputStream groupMessagesObjectOutputStream = new ObjectOutputStream(groupMessagesSocketOutputStream);
@@ -293,7 +286,6 @@ public class HomePage extends JPanel {
 
             ArrayList<MessageInfo> messageInfos = (ArrayList<MessageInfo>) groupMessagesObjectInputStream.readObject();
 
-            messagesContainer.removeAll();
             for (MessageInfo messageInfo : messageInfos) {
                 if (messageInfo.getIsFile() == 0) {
                     JPanel messageContainer = new JPanel();
@@ -393,8 +385,9 @@ public class HomePage extends JPanel {
         }
     }
 
-    public void populateMessageToContainer(String sender, String receiver) throws SQLException {
-        try{
+    public void populateMessageToContainer(String sender, String receiver) {
+        try {
+            messagesContainer.removeAll();
             Socket messagesSocket = new Socket("localhost", 7777);
 
             OutputStream messagesSocketOutputStream = messagesSocket.getOutputStream();
@@ -411,7 +404,6 @@ public class HomePage extends JPanel {
 
             ArrayList<MessageInfo> messageInfos = (ArrayList<MessageInfo>) messagesObjectInputStream.readObject();
 
-            messagesContainer.removeAll();
             for (MessageInfo messageInfo : messageInfos) {
                 if (messageInfo.getIsFile() == 0) {
                     JPanel messageContainer = new JPanel();
@@ -510,8 +502,9 @@ public class HomePage extends JPanel {
         }
     }
 
-    private void populateGroupChat(JPanel container) throws SQLException {
+    private void populateGroupChat(JPanel container) {
         try {
+            container.removeAll();
             Socket groupChatSocket = new Socket("localhost", 7777);
             OutputStream outputStream = groupChatSocket.getOutputStream();
             ObjectOutputStream groupObjectOutputStream = new ObjectOutputStream(outputStream);
@@ -530,10 +523,7 @@ public class HomePage extends JPanel {
             ObjectInputStream groupObjectInputStream = new ObjectInputStream(inputStream);
 
             List<GroupQueryResult> returnedGroups = (List<GroupQueryResult>) groupObjectInputStream.readObject();
-            groupObjectOutputStream.close();
-            groupObjectInputStream.close();
-            groupChatSocket.close();
-            container.removeAll();
+
             for (GroupQueryResult rs : returnedGroups) {
                 int groupId = rs.getGroupId();
                 String groupName = rs.getGroupName();
@@ -550,13 +540,13 @@ public class HomePage extends JPanel {
                     receiverBox.add(theReceiver);
                     receiverBox.revalidate();
                     receiverBox.repaint();
-                    try {
-                        populateGroupChatToContainer(ClientFrame.username, ClientFrame.groupId);
-                    } catch (SQLException ex) {
-                        throw new RuntimeException(ex);
-                    }
+                    populateGroupChatToContainer(ClientFrame.username, ClientFrame.groupId);
+
                 });
             }
+            groupObjectOutputStream.close();
+            groupObjectInputStream.close();
+            groupChatSocket.close();
             container.revalidate();
             container.repaint();
         } catch (UnknownHostException e) {
@@ -569,7 +559,7 @@ public class HomePage extends JPanel {
 
     }
 
-    public void populateOnlineUsers(ArrayList<OnlineUserInfo> onlineUserInfos, JPanel container) throws SQLException {
+    public void populateOnlineUsers(ArrayList<OnlineUserInfo> onlineUserInfos, JPanel container) {
         try {
             container.removeAll();
             JLabel label = new JLabel("Users", SwingConstants.CENTER);
@@ -587,8 +577,7 @@ public class HomePage extends JPanel {
             InputStream inputStream = onlineUsersSocket.getInputStream();
             ObjectInputStream onlineObjectInputStream = new ObjectInputStream(inputStream);
             ArrayList<String> allUsers = (ArrayList<String>) onlineObjectInputStream.readObject();
-
-            System.out.println(allUsers);
+            onlineUsersSocket.close();
 
             List<String> onlineUsers = new ArrayList<>();
             for (OnlineUserInfo onlineUserInfo : onlineUserInfos) {
@@ -615,11 +604,8 @@ public class HomePage extends JPanel {
                         receiverBox.add(theReceiver);
                         receiverBox.revalidate();
                         receiverBox.repaint();
-                        try {
-                            populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
-                        } catch (SQLException ex) {
-                            throw new RuntimeException(ex);
-                        }
+                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
+
                     });
 
                 } else {
@@ -636,11 +622,8 @@ public class HomePage extends JPanel {
                         receiverBox.add(theReceiver);
                         receiverBox.revalidate();
                         receiverBox.repaint();
-                        try {
-                            populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
-                        } catch (SQLException ex) {
-                            throw new RuntimeException(ex);
-                        }
+                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
+
                     });
                 }
             }
