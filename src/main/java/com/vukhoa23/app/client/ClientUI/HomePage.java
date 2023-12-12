@@ -1,18 +1,13 @@
 package com.vukhoa23.app.client.ClientUI;
 
 import com.vukhoa23.app.client.entity.*;
-import com.vukhoa23.utils.DbUtils;
 import com.vukhoa23.utils.FileUtils;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowEvent;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -50,11 +45,7 @@ public class HomePage extends JPanel {
         JButton createGroupBtn = new JButton("Create group chat");
         createGroupBtn.setBounds(820, 600, 150, 50);
         createGroupBtn.addActionListener(e -> {
-            try {
-                ClientFrame.homeToCreateGroup();
-            } catch (SQLException ex) {
-                throw new RuntimeException(ex);
-            }
+            ClientFrame.homeToCreateGroup();
         });
         this.add(createGroupBtn);
 
@@ -122,8 +113,7 @@ public class HomePage extends JPanel {
                         populateOnlineUsers(connectedUsers, onlineUsersContainer);
                     } else if (object instanceof GroupCreated) {
                         populateGroupChat(groupChatContainer);
-                    }
-                    else if(object instanceof Integer){
+                    } else if (object instanceof Integer) {
                         populateGroupChat(groupChatContainer);
                     }
                 }

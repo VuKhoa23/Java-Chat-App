@@ -1,18 +1,16 @@
 package com.vukhoa23.app.client.ClientUI;
 
 import com.vukhoa23.app.client.entity.GroupCreated;
-import com.vukhoa23.utils.DbUtils;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.sql.*;
 import java.util.ArrayList;
 
 public class CreateGroup extends JPanel {
-    CreateGroup() throws SQLException {
+    CreateGroup() {
         try{
             this.setLayout(null);
             this.setBounds(0, 0, 1000, 750);
