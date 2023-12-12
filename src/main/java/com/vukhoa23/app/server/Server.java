@@ -4,6 +4,7 @@ import com.vukhoa23.app.client.ClientUI.ClientFrame;
 import com.vukhoa23.app.client.entity.*;
 import com.vukhoa23.utils.DbUtils;
 
+import javax.swing.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -385,7 +386,46 @@ public class Server {
                             } catch (SQLException e) {
                                 throw new RuntimeException(e);
                             }
+                        }
+                        else if (option == 10){
+                            try{
+                                String username = (String) objectInputStream.readObject();
+                                Connection connection = DbUtils.getConnection();
+                                PreparedStatement stmt = connection.prepareStatement("SELECT * FROM account WHERE username=?");
+                                stmt.setString(1, username);
+                                ResultSet rs = stmt.executeQuery();
+                                String theUsername = null;
+                                String thePassword = null;
+                                while (rs.next()) {
+                                    theUsername = rs.getString(1);
+                                    thePassword = rs.getString(2);
+                                }
+                                AccountInfo accountInfo = new AccountInfo();
+                                accountInfo.setUsername(theUsername);
+                                accountInfo.setPassword(thePassword);
 
+                                OutputStream outputStream = socket.getOutputStream();
+                                // create a data output stream from the output stream so we can send data through it
+                                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                objectOutputStream.writeObject(accountInfo);
+                                socket.close();
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        else if (option == 11){
+                            try{
+                                AccountInfo accountInfo = (AccountInfo) objectInputStream.readObject();
+                                Connection connection = DbUtils.getConnection();
+                                String createQuery = "INSERT INTO ACCOUNT VALUES(?, ?)";
+                                PreparedStatement createStmt = connection.prepareStatement(createQuery);
+                                createStmt.setString(1, accountInfo.getUsername());
+                                createStmt.setString(2, accountInfo.getPassword());
+                                createStmt.executeUpdate();
+                                socket.close();
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
                         }
                     } else if (object instanceof GroupCreated) {
                         GroupCreated groupCreated = (GroupCreated) object;
