@@ -35,7 +35,7 @@ public class ClientFrame extends JFrame {
         Header.setHeader("Logged in as " + username);
     }
 
-    public static void homeToCreateGroup() throws SQLException {
+    public static void homeToCreateGroup() {
         setBody(new CreateGroup());
     }
 

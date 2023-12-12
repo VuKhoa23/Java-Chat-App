@@ -1,24 +1,13 @@
 package com.vukhoa23.app.client.ClientUI;
 
-import com.vukhoa23.app.client.entity.FileSend;
-import com.vukhoa23.app.client.entity.GroupCreated;
-import com.vukhoa23.app.client.entity.MessageInfo;
-import com.vukhoa23.app.client.entity.OnlineUserInfo;
-import com.vukhoa23.utils.DbUtils;
+import com.vukhoa23.app.client.entity.*;
 import com.vukhoa23.utils.FileUtils;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowEvent;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -56,11 +45,7 @@ public class HomePage extends JPanel {
         JButton createGroupBtn = new JButton("Create group chat");
         createGroupBtn.setBounds(820, 600, 150, 50);
         createGroupBtn.addActionListener(e -> {
-            try {
-                ClientFrame.homeToCreateGroup();
-            } catch (SQLException ex) {
-                throw new RuntimeException(ex);
-            }
+            ClientFrame.homeToCreateGroup();
         });
         this.add(createGroupBtn);
 
@@ -96,25 +81,20 @@ public class HomePage extends JPanel {
         groupChatContainerScroll.setBounds(800, 50, 200, 500);
         this.add(groupChatContainerScroll);
 
-
         messagesContainer.setBackground(Color.darkGray);
         messagesContainer.setLayout(new GridLayout(0, 1));
         messagesContainerScroll.setBounds(200, 50, 600, 500);
         this.add(messagesContainerScroll);
 
+
         //create thread that receive message from server
         Thread receiveThread = new Thread(() -> {
-            try {
-                populateGroupChat(groupChatContainer);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
             try {
                 while (true) {
                     // create a DataInputStream so we can read data from it.
                     InputStream inputStream = socket.getInputStream();
                     ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
-                    Object object = (Object) objectInputStream.readObject();
+                    Object object = objectInputStream.readObject();
                     if (object instanceof MessageInfo) {
                         MessageInfo messageInfo = (MessageInfo) object;
                         if (messageInfo.getMessage().equals("quit")) {
@@ -125,18 +105,20 @@ public class HomePage extends JPanel {
                             populateMessageToContainer(messageInfo.getUsername(), messageInfo.getReceiver());
                         } else if (ClientFrame.isGroupChat != null && ClientFrame.isGroupChat && (messageInfo.getGroupId() == ClientFrame.groupId)) {
                             populateGroupChatToContainer(messageInfo.getUsername(), messageInfo.getGroupId());
+                        } else if (ClientFrame.currentReceiver != null && messageInfo.getReceiver() != null && (messageInfo.getReceiver().equals(ClientFrame.currentReceiver)) && (ClientFrame.username.equals(messageInfo.getUsername()))) {
+                            populateMessageToContainer(messageInfo.getUsername(), messageInfo.getReceiver());
                         }
                     } else if (object instanceof List) {
                         ArrayList<OnlineUserInfo> connectedUsers = (ArrayList<OnlineUserInfo>) object;
                         populateOnlineUsers(connectedUsers, onlineUsersContainer);
                     } else if (object instanceof GroupCreated) {
                         populateGroupChat(groupChatContainer);
+                    } else if (object instanceof Integer) {
+                        populateGroupChat(groupChatContainer);
                     }
                 }
-            } catch (IOException | SQLException err) {
-                System.out.println("Error when receive message from client");
-                System.exit(0);
-            } catch (ClassNotFoundException e) {
+                System.exit(1);
+            } catch (ClassNotFoundException | IOException e) {
                 throw new RuntimeException(e);
             }
         });
@@ -183,7 +165,6 @@ public class HomePage extends JPanel {
                         FileInputStream fileInputStream = new FileInputStream(selectedFile);
                         OutputStream fileOutputStream = fileSocket.getOutputStream();
 
-
                         byte[] buffer = new byte[1024];
                         int bytesRead;
                         while ((bytesRead = fileInputStream.read(buffer)) != -1) {
@@ -194,23 +175,14 @@ public class HomePage extends JPanel {
 
                         fileSocket.close();
                         fileOutputStream.close();
-                        Connection connection = DbUtils.getConnection();
-                        PreparedStatement stmt = connection.prepareStatement(
-                                "INSERT INTO chat_history(sender, receiver, createdDate, is_groupChat, is_file, original_file_name, generated_file_name, file_size) values(?, ?, ?, 0, 1, ?, ?, ?)"
-                        );
+                        fileOutputStream.close();
+
                         MessageInfo messageInfo = new MessageInfo(ClientFrame.username, ClientFrame.currentReceiver,
                                 "", new Date().toString(), 1, fileSend.getOriginalName(), fileSend.getGeneratedName());
-                        stmt.setString(1, ClientFrame.username);
-                        stmt.setString(2, ClientFrame.currentReceiver);
-                        stmt.setString(3, new Date().toString());
-                        stmt.setString(4, fileSend.getOriginalName());
-                        stmt.setString(5, fileSend.getGeneratedName());
-                        System.out.println(fileSize);
-                        stmt.setFloat(6, fileSize);
-                        stmt.executeUpdate();
-                        connection.close();
+                        messageInfo.setIsGroupChat(0);
+                        messageInfo.setQuery("INSERT INTO chat_history(sender, receiver, createdDate, is_groupChat, is_file, original_file_name, generated_file_name, file_size) values(?, ?, ?, 0, 1, ?, ?, ?)");
+                        messageInfo.setFileSize(fileSize);
                         objectOutputStream.writeObject(messageInfo);
-                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
                     } else {
                         FileInputStream fileInputStream = new FileInputStream(selectedFile);
                         OutputStream fileOutputStream = fileSocket.getOutputStream();
@@ -223,30 +195,20 @@ public class HomePage extends JPanel {
                         fileSocket.close();
                         fileOutputStream.close();
 
-                        Connection connection = DbUtils.getConnection();
-                        PreparedStatement stmt = connection.prepareStatement(
-                                "INSERT INTO chat_history(sender, createdDate, is_groupChat, group_id ,is_file, original_file_name, generated_file_name, file_size) values(?, ?, 1, ? ,1, ?, ?, ?)"
-                        );
                         MessageInfo messageInfo = new MessageInfo(ClientFrame.username, "",
                                 new Date().toString(), 1, ClientFrame.groupId, 1,
                                 fileSend.getOriginalName(), fileSend.getGeneratedName());
-                        stmt.setString(1, ClientFrame.username);
-                        stmt.setString(2, new Date().toString());
-                        stmt.setInt(3, ClientFrame.groupId);
-                        stmt.setString(4, fileSend.getOriginalName());
-                        stmt.setString(5, fileSend.getGeneratedName());
-                        stmt.setFloat(6, fileSize);
+                        messageInfo.setFileSize(fileSize);
+                        messageInfo.setQuery("INSERT INTO chat_history(sender, createdDate, is_groupChat, group_id ,is_file, original_file_name, generated_file_name, file_size) values(?, ?, 1, ? ,1, ?, ?, ?)");
 
-                        stmt.executeUpdate();
-                        connection.close();
+                        fileInputStream.close();
+                        fileOutputStream.close();
                         objectOutputStream.writeObject(messageInfo);
                     }
                 }
             } catch (FileNotFoundException ex) {
                 throw new RuntimeException(ex);
             } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            } catch (SQLException ex) {
                 throw new RuntimeException(ex);
             }
 
@@ -267,26 +229,12 @@ public class HomePage extends JPanel {
                             ClientFrame.username,
                             ClientFrame.currentReceiver,
                             theString, new Date().toString());
-                    if (!theString.equals("quit")) {
-                        // connect to db and save the message
-                        Connection connection = DbUtils.getConnection();
-                        PreparedStatement stmt = connection.prepareStatement(
-                                "INSERT INTO chat_history(sender, receiver, content, createdDate, is_groupChat, is_file) values(?, ?, ?, ?, ?, 0)"
-                        );
-                        stmt.setString(1, messageInfo.getUsername());
-                        stmt.setString(2, messageInfo.getReceiver());
-                        stmt.setString(3, messageInfo.getMessage());
-                        stmt.setString(4, messageInfo.getCreatedDate().toString());
-                        stmt.setInt(5, 0);
-                        stmt.executeUpdate();
-                        connection.close();
-                    }
+                    messageInfo.setIsGroupChat(0);
+                    messageInfo.setIsFile(0);
+                    messageInfo.setQuery("INSERT INTO chat_history(sender, receiver, content, createdDate, is_groupChat, is_file) values(?, ?, ?, ?, ?, 0)");
 
                     // write the message we want to send
                     objectOutputStream.writeObject(messageInfo);
-                    // populate messages
-                    populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
-                    //objectOutputStream.flush();
                 } else {
                     String theString = messageInp.getText();
                     MessageInfo messageInfo = new MessageInfo(
@@ -296,328 +244,387 @@ public class HomePage extends JPanel {
                             1,
                             ClientFrame.groupId
                     );
-                    if (!theString.equals("quit")) {
-                        Connection connection = DbUtils.getConnection();
-                        PreparedStatement stmt = connection.prepareStatement(
-                                "INSERT INTO chat_history(sender, content, createdDate, is_groupChat, group_id, is_file) VALUES(?, ?, ?, ?, ?, 0)"
-                        );
-                        stmt.setString(1, messageInfo.getUsername());
-                        stmt.setString(2, messageInfo.getMessage());
-                        stmt.setString(3, messageInfo.getCreatedDate());
-                        stmt.setInt(4, messageInfo.isGroupChat());
-                        stmt.setInt(5, messageInfo.getGroupId());
-                        stmt.executeUpdate();
-                        connection.close();
-                    }
+                    messageInfo.setIsFile(0);
+                    messageInfo.setQuery("INSERT INTO chat_history(sender, content, createdDate, is_groupChat, group_id, is_file) VALUES(?, ?, ?, ?, ?, 0)");
                     // write the message we want to send
                     objectOutputStream.writeObject(messageInfo);
                     // populate messages
                     //populateGroupChatToContainer(ClientFrame.username, ClientFrame.groupId);
                     //objectOutputStream.flush();
                 }
-
             } catch (IOException err) {
                 throw new RuntimeException("Error when sending message from client");
-            } catch (SQLException ex) {
-                throw new RuntimeException(ex);
             }
         });
     }
 
 
-    public void populateGroupChatToContainer(String theUsername, int groupId) throws SQLException {
-        messagesContainer.removeAll();
-        Connection connection = DbUtils.getConnection();
-        PreparedStatement preparedStatement = connection.prepareStatement(
-                "SELECT * FROM chat_history WHERE group_id=?"
-        );
-        preparedStatement.setInt(1, groupId);
-        ResultSet rs = preparedStatement.executeQuery();
-        while (rs.next()) {
-            MessageInfo messageInfo = new MessageInfo(
-                    rs.getString("sender"),
-                    rs.getString("content"),
-                    rs.getString("createdDate"),
-                    rs.getInt("is_groupChat"),
-                    rs.getInt("group_id"),
-                    rs.getInt("is_file"),
-                    rs.getString("original_file_name"),
-                    rs.getString("generated_file_name"));
-            if (messageInfo.getIsFile() == 0) {
-                JPanel messageContainer = new JPanel();
-                JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
-                JTextArea theMessage = new JTextArea(messageInfo.getMessage());
-                username.setPreferredSize(new Dimension(500, 30));
-                theMessage.setColumns(50);
-                theMessage.setRows(3);
-                theMessage.setEditable(false);
+    public void populateGroupChatToContainer(String theUsername, int groupId) {
+        try {
+            messagesContainer.removeAll();
+            Socket groupMessagesSocket = new Socket("localhost", 7777);
+            OutputStream groupMessagesSocketOutputStream = groupMessagesSocket.getOutputStream();
+            ObjectOutputStream groupMessagesObjectOutputStream = new ObjectOutputStream(groupMessagesSocketOutputStream);
 
-                JScrollPane messageScroll = new JScrollPane(theMessage);
+            Integer option = 7;
+            groupMessagesObjectOutputStream.writeObject(option);
+            Integer theGroupId = groupId;
+            groupMessagesObjectOutputStream.writeObject(theGroupId);
 
-                messageContainer.setPreferredSize(new Dimension(600, 100));
-                messageContainer.setLayout(new FlowLayout());
-                messageContainer.add(username);
-                messageContainer.add(messageScroll);
-                messagesContainer.add(messageContainer);
-            } else {
-                JPanel messageContainer = new JPanel();
-                JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
-                JTextArea theMessage = new JTextArea(messageInfo.getOriginalFileName() + "\n" + rs.getFloat("file_size") + " MB");
-                username.setPreferredSize(new Dimension(500, 30));
-                theMessage.setColumns(30);
-                theMessage.setRows(3);
-                theMessage.setEditable(false);
-                theMessage.setFont(new Font("Dialog", Font.BOLD, 12));
+            InputStream groupMessagesSocketInputStream = groupMessagesSocket.getInputStream();
+            ObjectInputStream groupMessagesObjectInputStream = new ObjectInputStream(groupMessagesSocketInputStream);
 
-                JButton downloadBtn = new JButton("Download");
+            ArrayList<MessageInfo> messageInfos = (ArrayList<MessageInfo>) groupMessagesObjectInputStream.readObject();
 
-                messageContainer.setPreferredSize(new Dimension(600, 100));
-                messageContainer.setLayout(new FlowLayout());
-                messageContainer.add(username);
-                messageContainer.add(theMessage);
-                messageContainer.add(downloadBtn);
-                messagesContainer.add(messageContainer);
-            }
-        }
-        messagesContainer.validate();
-        messagesContainer.repaint();
-        messagesContainerScroll.validate();
-        JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
-        vertical.setValue(vertical.getMaximum());
+            for (MessageInfo messageInfo : messageInfos) {
+                if (messageInfo.getIsFile() == 0) {
+                    JPanel messageContainer = new JPanel();
+                    JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
+                    JTextArea theMessage = new JTextArea(messageInfo.getMessage());
+                    username.setPreferredSize(new Dimension(500, 30));
+                    theMessage.setColumns(50);
+                    theMessage.setRows(3);
+                    theMessage.setEditable(false);
 
-        // scroll to bottom when new messages are populated
-    }
+                    JScrollPane messageScroll = new JScrollPane(theMessage);
 
-    public void populateMessageToContainer(String sender, String receiver) throws SQLException {
-        messagesContainer.removeAll();
-        Connection connection = DbUtils.getConnection();
-        PreparedStatement preparedStatement = connection.prepareStatement(
-                "SELECT * FROM chat_history WHERE (sender=? AND receiver=?) OR (receiver=? AND sender=?)"
-        );
-        preparedStatement.setString(1, sender);
-        preparedStatement.setString(2, receiver);
-        preparedStatement.setString(3, sender);
-        preparedStatement.setString(4, receiver);
+                    messageContainer.setPreferredSize(new Dimension(600, 100));
+                    messageContainer.setLayout(new FlowLayout());
+                    messageContainer.add(username);
+                    messageContainer.add(messageScroll);
+                    messagesContainer.add(messageContainer);
+                } else {
+                    JPanel messageContainer = new JPanel();
+                    JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
+                    JTextArea theMessage = new JTextArea(messageInfo.getOriginalFileName() + "\n" + messageInfo.getFileSize() + " MB");
+                    username.setPreferredSize(new Dimension(500, 30));
+                    theMessage.setColumns(30);
+                    theMessage.setRows(3);
+                    theMessage.setEditable(false);
+                    theMessage.setFont(new Font("Dialog", Font.BOLD, 12));
 
-        ResultSet rs = preparedStatement.executeQuery();
-        while (rs.next()) {
-            MessageInfo messageInfo = new MessageInfo(
-                    rs.getString("sender"),
-                    rs.getString("receiver"),
-                    rs.getString("content"),
-                    rs.getString("createdDate"),
-                    rs.getInt("is_file"),
-                    rs.getString("original_file_name"),
-                    rs.getString("generated_file_name"));
-            if (messageInfo.getIsFile() == 0) {
-                JPanel messageContainer = new JPanel();
-                JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
-                JTextArea theMessage = new JTextArea(messageInfo.getMessage());
-                username.setPreferredSize(new Dimension(500, 30));
-                theMessage.setColumns(50);
-                theMessage.setRows(3);
-                theMessage.setEditable(false);
+                    JScrollPane messageScroll = new JScrollPane(theMessage);
+                    JButton downloadBtn = new JButton("Download");
+                    downloadBtn.addActionListener(e -> {
+                        try {
+                            JFileChooser chooser = new JFileChooser();
+                            chooser.setCurrentDirectory(new java.io.File("."));
+                            chooser.setDialogTitle("Choose directory to save the file");
+                            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                            //
+                            // disable the "All files" option.
+                            //
+                            chooser.setAcceptAllFileFilterUsed(false);
+                            //
+                            if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                                String dir = String.valueOf(chooser.getSelectedFile());
+                                Socket downloadSocket = new Socket("localhost", 7777);
+                                OutputStream outputStream = downloadSocket.getOutputStream();
+                                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
 
+                                objectOutputStream.writeObject(new FileSend(messageInfo.getOriginalFileName(), messageInfo.getGeneratedFileName()));
 
-                JScrollPane messageScroll = new JScrollPane(theMessage);
+                                FileOutputStream fileOutputStream = new FileOutputStream(dir + "\\" + messageInfo.getOriginalFileName());
+                                JFrame downloadFrame = new JFrame();
+                                downloadFrame.setSize(new Dimension(300, 200));
+                                JLabel label = new JLabel("Downloading...");
+                                downloadFrame.setLayout(new FlowLayout());
+                                downloadFrame.add(label);
+                                downloadFrame.setVisible(true);
 
-                messageContainer.setPreferredSize(new Dimension(600, 100));
-                messageContainer.setLayout(new FlowLayout());
-                messageContainer.add(username);
-                messageContainer.add(messageScroll);
-                messagesContainer.add(messageContainer);
-            } else {
-                JPanel messageContainer = new JPanel();
-                JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
-                JTextArea theMessage = new JTextArea(messageInfo.getOriginalFileName() + "\n" + rs.getFloat("file_size") + " MB");
-                username.setPreferredSize(new Dimension(500, 30));
-                theMessage.setColumns(30);
-                theMessage.setRows(3);
-                theMessage.setEditable(false);
-                theMessage.setFont(new Font("Dialog", Font.BOLD, 12));
-
-                JScrollPane messageScroll = new JScrollPane(theMessage);
-                JButton downloadBtn = new JButton("Download");
-                downloadBtn.addActionListener(e -> {
-                    try {
-                        JFileChooser chooser = new JFileChooser();
-                        chooser.setCurrentDirectory(new java.io.File("."));
-                        chooser.setDialogTitle("Choose directory to save the file");
-                        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                        //
-                        // disable the "All files" option.
-                        //
-                        chooser.setAcceptAllFileFilterUsed(false);
-                        //
-                        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                            String dir = String.valueOf(chooser.getSelectedFile());
-                            Socket downloadSocket = new Socket("localhost", 7777);
-                            OutputStream outputStream = downloadSocket.getOutputStream();
-                            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-
-                            objectOutputStream.writeObject(new FileSend(messageInfo.getOriginalFileName(), messageInfo.getGeneratedFileName()));
-
-                            FileOutputStream fileOutputStream = new FileOutputStream(dir + "\\" + messageInfo.getOriginalFileName());
-                            JFrame downloadFrame = new JFrame();
-                            downloadFrame.setSize(new Dimension(300, 200));
-                            JLabel label = new JLabel("Downloading...");
-                            downloadFrame.setLayout(new FlowLayout());
-                            downloadFrame.add(label);
-                            downloadFrame.setVisible(true);
-
-                            byte[] buffer = new byte[1024];
-                            int bytesRead;
-                            while ((bytesRead = downloadSocket.getInputStream().read(buffer)) != -1) {
-                                fileOutputStream.write(buffer, 0, bytesRead);
+                                byte[] buffer = new byte[1024];
+                                int bytesRead;
+                                while ((bytesRead = downloadSocket.getInputStream().read(buffer)) != -1) {
+                                    fileOutputStream.write(buffer, 0, bytesRead);
+                                }
+                                label.setText("Download finished");
+                                fileOutputStream.close();
+                                objectOutputStream.close();
+                                downloadSocket.close();
                             }
 
-                            label.setText("Download finished");
-                            objectOutputStream.close();
-                            downloadSocket.close();
+                        } catch (UnknownHostException ex) {
+                            throw new RuntimeException(ex);
+                        } catch (IOException ex) {
+                            throw new RuntimeException(ex);
                         }
 
-                    } catch (UnknownHostException ex) {
-                        throw new RuntimeException(ex);
-                    } catch (IOException ex) {
-                        throw new RuntimeException(ex);
-                    }
+                    });
 
-                });
-                messageContainer.setPreferredSize(new Dimension(600, 100));
-                messageContainer.setLayout(new FlowLayout());
-                messageContainer.add(username);
-                messageContainer.add(messageScroll);
-                messageContainer.add(downloadBtn);
-                messagesContainer.add(messageContainer);
-            }
-
-        }
-        messagesContainer.validate();
-        messagesContainer.repaint();
-        messagesContainerScroll.validate();
-        JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
-        vertical.setValue(vertical.getMaximum());
-
-        // scroll to bottom when new messages are populated
-
-    }
-
-    private void populateGroupChat(JPanel container) throws SQLException {
-        container.removeAll();
-        JLabel label = new JLabel("Your groups", SwingConstants.CENTER);
-        label.setPreferredSize(new Dimension(190, 30));
-        label.setMaximumSize(new Dimension(190, 30));
-        label.setMinimumSize(new Dimension(190, 30));
-        container.add(label);
-        String query = "SELECT group_id, group_chat.name\n" +
-                "FROM users_groups\n" +
-                "JOIN group_chat\n" +
-                "ON group_chat.id = users_groups.group_id\n" +
-                "WHERE users_groups.username =?";
-        Connection connection = DbUtils.getConnection();
-        PreparedStatement stmt = connection.prepareStatement(query);
-        stmt.setString(1, ClientFrame.username);
-        ResultSet rs = stmt.executeQuery();
-        while (rs.next()) {
-            int groupId = rs.getInt(1);
-            String groupName = rs.getString(2);
-            JButton group = new JButton(groupName);
-            group.setPreferredSize(new Dimension(190, 30));
-            group.setMaximumSize(new Dimension(190, 30));
-            group.setMinimumSize(new Dimension(190, 30));
-            container.add(group);
-            group.addActionListener(e -> {
-                ClientFrame.isGroupChat = true;
-                ClientFrame.groupId = groupId;
-                receiverBox.removeAll();
-                JLabel theReceiver = new JLabel("Chatting with group: " + groupName);
-                receiverBox.add(theReceiver);
-                receiverBox.revalidate();
-                receiverBox.repaint();
-                try {
-                    populateGroupChatToContainer(ClientFrame.username, ClientFrame.groupId);
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
+                    messageContainer.setPreferredSize(new Dimension(600, 100));
+                    messageContainer.setLayout(new FlowLayout());
+                    messageContainer.add(username);
+                    messageContainer.add(messageScroll);
+                    messageContainer.add(downloadBtn);
+                    messagesContainer.add(messageContainer);
                 }
-            });
+            }
+            messagesContainer.validate();
+            messagesContainer.repaint();
+            messagesContainerScroll.validate();
+            JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
+            vertical.setValue(vertical.getMaximum());
+
+            // scroll to bottom when new messages are populated
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
-        container.revalidate();
-        container.repaint();
     }
 
-    public void populateOnlineUsers(ArrayList<OnlineUserInfo> onlineUserInfos, JPanel container) throws SQLException {
-        container.removeAll();
-        JLabel label = new JLabel("Users", SwingConstants.CENTER);
-        label.setPreferredSize(new Dimension(190, 30));
-        label.setMaximumSize(new Dimension(190, 30));
-        label.setMinimumSize(new Dimension(190, 30));
-        container.add(label);
+    public void populateMessageToContainer(String sender, String receiver) {
+        try {
+            messagesContainer.removeAll();
+            Socket messagesSocket = new Socket("localhost", 7777);
 
-        List<String> allUsers = new ArrayList<>();
+            OutputStream messagesSocketOutputStream = messagesSocket.getOutputStream();
+            ObjectOutputStream messagesObjectOutputStream = new ObjectOutputStream(messagesSocketOutputStream);
 
-        Connection connection = DbUtils.getConnection();
-        PreparedStatement stmt = connection.prepareStatement("SELECT username FROM account");
-        ResultSet rs = stmt.executeQuery();
-        while (rs.next()) {
-            allUsers.add(rs.getString(1));
-        }
+            Integer option = 6;
 
-        List<String> onlineUsers = new ArrayList<>();
-        for (OnlineUserInfo onlineUserInfo : onlineUserInfos) {
-            onlineUsers.add(onlineUserInfo.getUsername());
-        }
+            messagesObjectOutputStream.writeObject(option);
+            messagesObjectOutputStream.writeObject(sender);
+            messagesObjectOutputStream.writeObject(receiver);
 
-        for (String user : allUsers) {
-            if (user.equals(ClientFrame.username)) {
-                continue;
+            InputStream messagesSocketInputStream = messagesSocket.getInputStream();
+            ObjectInputStream messagesObjectInputStream = new ObjectInputStream(messagesSocketInputStream);
+
+            ArrayList<MessageInfo> messageInfos = (ArrayList<MessageInfo>) messagesObjectInputStream.readObject();
+
+            for (MessageInfo messageInfo : messageInfos) {
+                if (messageInfo.getIsFile() == 0) {
+                    JPanel messageContainer = new JPanel();
+                    JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
+                    JTextArea theMessage = new JTextArea(messageInfo.getMessage());
+                    username.setPreferredSize(new Dimension(500, 30));
+                    theMessage.setColumns(50);
+                    theMessage.setRows(3);
+                    theMessage.setEditable(false);
+
+
+                    JScrollPane messageScroll = new JScrollPane(theMessage);
+
+                    messageContainer.setPreferredSize(new Dimension(600, 100));
+                    messageContainer.setLayout(new FlowLayout());
+                    messageContainer.add(username);
+                    messageContainer.add(messageScroll);
+                    messagesContainer.add(messageContainer);
+                } else {
+                    JPanel messageContainer = new JPanel();
+                    JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
+                    JTextArea theMessage = new JTextArea(messageInfo.getOriginalFileName() + "\n" + messageInfo.getFileSize() + " MB");
+                    username.setPreferredSize(new Dimension(500, 30));
+                    theMessage.setColumns(30);
+                    theMessage.setRows(3);
+                    theMessage.setEditable(false);
+                    theMessage.setFont(new Font("Dialog", Font.BOLD, 12));
+
+                    JScrollPane messageScroll = new JScrollPane(theMessage);
+                    JButton downloadBtn = new JButton("Download");
+                    downloadBtn.addActionListener(e -> {
+                        try {
+                            JFileChooser chooser = new JFileChooser();
+                            chooser.setCurrentDirectory(new java.io.File("."));
+                            chooser.setDialogTitle("Choose directory to save the file");
+                            chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                            //
+                            // disable the "All files" option.
+                            //
+                            chooser.setAcceptAllFileFilterUsed(false);
+                            //
+                            if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                                String dir = String.valueOf(chooser.getSelectedFile());
+                                Socket downloadSocket = new Socket("localhost", 7777);
+                                OutputStream outputStream = downloadSocket.getOutputStream();
+                                ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+
+                                objectOutputStream.writeObject(new FileSend(messageInfo.getOriginalFileName(), messageInfo.getGeneratedFileName()));
+
+                                FileOutputStream fileOutputStream = new FileOutputStream(dir + "\\" + messageInfo.getOriginalFileName());
+                                JFrame downloadFrame = new JFrame();
+                                downloadFrame.setSize(new Dimension(300, 200));
+                                JLabel label = new JLabel("Downloading...");
+                                downloadFrame.setLayout(new FlowLayout());
+                                downloadFrame.add(label);
+                                downloadFrame.setVisible(true);
+
+                                byte[] buffer = new byte[1024];
+                                int bytesRead;
+                                while ((bytesRead = downloadSocket.getInputStream().read(buffer)) != -1) {
+                                    fileOutputStream.write(buffer, 0, bytesRead);
+                                }
+                                label.setText("Download finished");
+                                fileOutputStream.close();
+                                objectOutputStream.close();
+                                downloadSocket.close();
+                            }
+
+                        } catch (UnknownHostException ex) {
+                            throw new RuntimeException(ex);
+                        } catch (IOException ex) {
+                            throw new RuntimeException(ex);
+                        }
+
+                    });
+                    messageContainer.setPreferredSize(new Dimension(600, 100));
+                    messageContainer.setLayout(new FlowLayout());
+                    messageContainer.add(username);
+                    messageContainer.add(messageScroll);
+                    messageContainer.add(downloadBtn);
+                    messagesContainer.add(messageContainer);
+                }
             }
-            if (onlineUsers.contains(user)) {
-                JButton online = new JButton(user + " - online");
-                online.setBackground(Color.green);
-                online.setPreferredSize(new Dimension(200, 30));
-                online.setMaximumSize(new Dimension(200, 30));
-                online.setMinimumSize(new Dimension(200, 30));
-                container.add(online);
-                online.addActionListener(e -> {
-                    ClientFrame.currentReceiver = user;
-                    ClientFrame.isGroupChat = false;
-                    // show current receiver
-                    JLabel theReceiver = new JLabel("Chatting with user: " + ClientFrame.currentReceiver);
+            messagesContainer.validate();
+            messagesContainer.repaint();
+            messagesContainerScroll.validate();
+            JScrollBar vertical = messagesContainerScroll.getVerticalScrollBar();
+            vertical.setValue(vertical.getMaximum());
+            // scroll to bottom when new messages are populated
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void populateGroupChat(JPanel container) {
+        try {
+            container.removeAll();
+            Socket groupChatSocket = new Socket("localhost", 7777);
+            OutputStream outputStream = groupChatSocket.getOutputStream();
+            ObjectOutputStream groupObjectOutputStream = new ObjectOutputStream(outputStream);
+
+            JLabel label = new JLabel("Your groups", SwingConstants.CENTER);
+            label.setPreferredSize(new Dimension(190, 30));
+            label.setMaximumSize(new Dimension(190, 30));
+            label.setMinimumSize(new Dimension(190, 30));
+            container.add(label);
+
+            Integer option = 4;
+            groupObjectOutputStream.writeObject(option);
+            groupObjectOutputStream.writeObject(ClientFrame.username);
+
+            InputStream inputStream = groupChatSocket.getInputStream();
+            ObjectInputStream groupObjectInputStream = new ObjectInputStream(inputStream);
+
+            List<GroupQueryResult> returnedGroups = (List<GroupQueryResult>) groupObjectInputStream.readObject();
+
+            for (GroupQueryResult rs : returnedGroups) {
+                int groupId = rs.getGroupId();
+                String groupName = rs.getGroupName();
+                JButton group = new JButton(groupName);
+                group.setPreferredSize(new Dimension(190, 30));
+                group.setMaximumSize(new Dimension(190, 30));
+                group.setMinimumSize(new Dimension(190, 30));
+                container.add(group);
+                group.addActionListener(e -> {
+                    ClientFrame.isGroupChat = true;
+                    ClientFrame.groupId = groupId;
                     receiverBox.removeAll();
+                    JLabel theReceiver = new JLabel("Chatting with group: " + groupName);
                     receiverBox.add(theReceiver);
                     receiverBox.revalidate();
                     receiverBox.repaint();
-                    try {
-                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
-                    } catch (SQLException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                });
+                    populateGroupChatToContainer(ClientFrame.username, ClientFrame.groupId);
 
-            } else {
-                JButton online = new JButton(user + " - offline");
-                online.setPreferredSize(new Dimension(200, 30));
-                online.setMaximumSize(new Dimension(200, 30));
-                online.setMinimumSize(new Dimension(200, 30));
-                container.add(online);
-                online.addActionListener(e -> {
-                    ClientFrame.currentReceiver = user;
-                    ClientFrame.isGroupChat = false;
-                    JLabel theReceiver = new JLabel("Chatting with user: " + ClientFrame.currentReceiver);
-                    receiverBox.removeAll();
-                    receiverBox.add(theReceiver);
-                    receiverBox.revalidate();
-                    receiverBox.repaint();
-                    try {
-                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
-                    } catch (SQLException ex) {
-                        throw new RuntimeException(ex);
-                    }
                 });
-
             }
+            groupObjectOutputStream.close();
+            groupObjectInputStream.close();
+            groupChatSocket.close();
+            container.revalidate();
+            container.repaint();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
-        container.revalidate();
-        container.repaint();
+
+    }
+
+    public void populateOnlineUsers(ArrayList<OnlineUserInfo> onlineUserInfos, JPanel container) {
+        try {
+            container.removeAll();
+            JLabel label = new JLabel("Users", SwingConstants.CENTER);
+            label.setPreferredSize(new Dimension(190, 30));
+            label.setMaximumSize(new Dimension(190, 30));
+            label.setMinimumSize(new Dimension(190, 30));
+            container.add(label);
+
+            Socket onlineUsersSocket = new Socket("localhost", 7777);
+            OutputStream outputStream = onlineUsersSocket.getOutputStream();
+            ObjectOutputStream onlineObjectOutputStream = new ObjectOutputStream(outputStream);
+            Integer option = 5;
+            onlineObjectOutputStream.writeObject(option);
+
+            InputStream inputStream = onlineUsersSocket.getInputStream();
+            ObjectInputStream onlineObjectInputStream = new ObjectInputStream(inputStream);
+            ArrayList<String> allUsers = (ArrayList<String>) onlineObjectInputStream.readObject();
+            onlineUsersSocket.close();
+
+            List<String> onlineUsers = new ArrayList<>();
+            for (OnlineUserInfo onlineUserInfo : onlineUserInfos) {
+                onlineUsers.add(onlineUserInfo.getUsername());
+            }
+
+            for (String user : allUsers) {
+                if (user.equals(ClientFrame.username)) {
+                    continue;
+                }
+                if (onlineUsers.contains(user)) {
+                    JButton online = new JButton(user + " - online");
+                    online.setBackground(Color.green);
+                    online.setPreferredSize(new Dimension(200, 30));
+                    online.setMaximumSize(new Dimension(200, 30));
+                    online.setMinimumSize(new Dimension(200, 30));
+                    container.add(online);
+                    online.addActionListener(e -> {
+                        ClientFrame.currentReceiver = user;
+                        ClientFrame.isGroupChat = false;
+                        // show current receiver
+                        JLabel theReceiver = new JLabel("Chatting with user: " + ClientFrame.currentReceiver);
+                        receiverBox.removeAll();
+                        receiverBox.add(theReceiver);
+                        receiverBox.revalidate();
+                        receiverBox.repaint();
+                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
+
+                    });
+
+                } else {
+                    JButton online = new JButton(user + " - offline");
+                    online.setPreferredSize(new Dimension(200, 30));
+                    online.setMaximumSize(new Dimension(200, 30));
+                    online.setMinimumSize(new Dimension(200, 30));
+                    container.add(online);
+                    online.addActionListener(e -> {
+                        ClientFrame.currentReceiver = user;
+                        ClientFrame.isGroupChat = false;
+                        JLabel theReceiver = new JLabel("Chatting with user: " + ClientFrame.currentReceiver);
+                        receiverBox.removeAll();
+                        receiverBox.add(theReceiver);
+                        receiverBox.revalidate();
+                        receiverBox.repaint();
+                        populateMessageToContainer(ClientFrame.username, ClientFrame.currentReceiver);
+
+                    });
+                }
+            }
+            container.revalidate();
+            container.repaint();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

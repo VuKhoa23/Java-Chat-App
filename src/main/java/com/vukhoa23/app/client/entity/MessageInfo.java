@@ -3,17 +3,27 @@ package com.vukhoa23.app.client.entity;
 import java.io.Serializable;
 
 public class MessageInfo implements Serializable {
+    private String query;
     private String username;
     private String receiver;
     private String message;
     private String createdDate;
     private int isGroupChat;
     private int groupId;
+    private float fileSize;
 
     private int isFile = 0;
 
     private String originalFileName = null;
     private String generatedFileName = null;
+
+    public String getQuery() {
+        return query;
+    }
+
+    public void setQuery(String query) {
+        this.query = query;
+    }
 
     public String getUsername() {
         return username;
@@ -95,6 +105,13 @@ public class MessageInfo implements Serializable {
         this.groupId = groupId;
     }
 
+    public float getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(float fileSize) {
+        this.fileSize = fileSize;
+    }
 
     public MessageInfo(String username, String receiver, String message, String createdDate) {
         this.username = username;
