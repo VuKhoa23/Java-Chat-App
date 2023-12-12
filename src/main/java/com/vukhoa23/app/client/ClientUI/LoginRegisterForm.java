@@ -1,8 +1,8 @@
 package com.vukhoa23.app.client.ClientUI;
 
-import com.vukhoa23.app.client.entity.AccountInfo;
-import com.vukhoa23.app.client.entity.AppConstants;
-import com.vukhoa23.app.client.entity.OnlineUserInfo;
+import com.vukhoa23.app.entity.AccountInfo;
+import com.vukhoa23.app.entity.AppConstants;
+import com.vukhoa23.app.entity.OnlineUserInfo;
 
 import javax.swing.*;
 import java.awt.*;

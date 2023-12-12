@@ -1,10 +1,9 @@
 package com.vukhoa23.app.server;
 
-import com.vukhoa23.app.client.ClientUI.ClientFrame;
 import com.vukhoa23.app.client.entity.*;
+import com.vukhoa23.app.entity.*;
 import com.vukhoa23.utils.DbUtils;
 
-import javax.swing.*;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -12,7 +11,6 @@ import java.net.Socket;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 public class Server {
     public static ArrayList<SocketInfo> connectedSocket = new ArrayList<>();

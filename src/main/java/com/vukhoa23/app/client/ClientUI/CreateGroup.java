@@ -1,7 +1,7 @@
 package com.vukhoa23.app.client.ClientUI;
 
-import com.vukhoa23.app.client.entity.AppConstants;
-import com.vukhoa23.app.client.entity.GroupCreated;
+import com.vukhoa23.app.entity.AppConstants;
+import com.vukhoa23.app.entity.GroupCreated;
 
 import javax.swing.*;
 import java.awt.*;

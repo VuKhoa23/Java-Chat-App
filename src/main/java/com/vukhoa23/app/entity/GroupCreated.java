@@ -1,4 +1,4 @@
-package com.vukhoa23.app.client.entity;
+package com.vukhoa23.app.entity;
 
 import java.io.Serializable;
 import java.util.ArrayList;

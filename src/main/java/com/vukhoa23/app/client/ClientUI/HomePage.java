@@ -1,6 +1,7 @@
 package com.vukhoa23.app.client.ClientUI;
 
 import com.vukhoa23.app.client.entity.*;
+import com.vukhoa23.app.entity.*;
 import com.vukhoa23.utils.FileUtils;
 
 import javax.swing.*;
