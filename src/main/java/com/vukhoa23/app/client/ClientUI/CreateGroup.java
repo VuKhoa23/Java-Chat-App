@@ -1,5 +1,6 @@
 package com.vukhoa23.app.client.ClientUI;
 
+import com.vukhoa23.app.client.entity.AppConstants;
 import com.vukhoa23.app.client.entity.GroupCreated;
 
 import javax.swing.*;
@@ -23,7 +24,7 @@ public class CreateGroup extends JPanel {
             checkBoxesContainerScroll.setBounds(200, 50, 600, 500);
 
             // get all users
-            Socket allUsersSocket = new Socket("localhost", 7777);
+            Socket allUsersSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
             OutputStream allUsersOutputStream = allUsersSocket.getOutputStream();
             ObjectOutputStream allUsersObjectOutputStream = new ObjectOutputStream(allUsersOutputStream);
             Integer option = 5;
@@ -75,7 +76,7 @@ public class CreateGroup extends JPanel {
                             JOptionPane.ERROR_MESSAGE);
                 } else {
                     try {
-                        Socket createGroupSocket = new Socket("localhost", 7777);
+                        Socket createGroupSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
                         OutputStream createGroupOutputStream = createGroupSocket.getOutputStream();
                         ObjectOutputStream createGroupObjectOutputStream = new ObjectOutputStream(createGroupOutputStream);
 
@@ -97,7 +98,7 @@ public class CreateGroup extends JPanel {
                         listOfUsersCbx.forEach(cbx -> {
                             if (cbx.isSelected()) {
                                 try {
-                                    Socket insertMemeberSocket = new Socket("localhost", 7777);
+                                    Socket insertMemeberSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
                                     OutputStream insertMemeberOutputStream = insertMemeberSocket.getOutputStream();
                                     ObjectOutputStream insertMemeberObjectOutputStream = new ObjectOutputStream(insertMemeberOutputStream);
 
@@ -115,8 +116,7 @@ public class CreateGroup extends JPanel {
                                 }
                             }
                         });
-                        Socket socket = new Socket("localhost", 7777);
-                        System.out.println("Connected!");
+                        Socket socket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
                         OutputStream outputStream = socket.getOutputStream();
                         ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
                         objectOutputStream.writeObject(groupCreated);
