@@ -281,18 +281,40 @@ public class HomePage extends JPanel {
                     JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
                     JTextArea theMessage = new JTextArea(messageInfo.getMessage());
                     username.setPreferredSize(new Dimension(500, 30));
-                    theMessage.setColumns(50);
+                    theMessage.setColumns(40);
                     theMessage.setRows(3);
                     theMessage.setEditable(false);
 
                     JScrollPane messageScroll = new JScrollPane(theMessage);
 
+                    JButton deleteBtn = new JButton("Delete");
+                    deleteBtn.addActionListener(e->{
+                        try{
+                            Socket deleteMessageSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
+                            OutputStream outputStream = deleteMessageSocket.getOutputStream();
+                            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                            Integer deleteOption = 12;
+                            objectOutputStream.writeObject(deleteOption);
+                            objectOutputStream.writeObject(messageInfo);
+                            deleteMessageSocket.close();
+                            objectOutputStream.close();
+                        } catch (UnknownHostException ex) {
+                            throw new RuntimeException(ex);
+                        } catch (IOException ex) {
+                            throw new RuntimeException(ex);
+                        }
+
+                    });
+
                     messageContainer.setPreferredSize(new Dimension(600, 100));
                     messageContainer.setLayout(new FlowLayout());
                     messageContainer.add(username);
                     messageContainer.add(messageScroll);
+                    messageContainer.add(deleteBtn);
                     messagesContainer.add(messageContainer);
                 } else {
+                    messageInfo.setMessage("");
+
                     JPanel messageContainer = new JPanel();
                     JLabel username = new JLabel(messageInfo.getUsername() + " - " + messageInfo.getCreatedDate());
                     JTextArea theMessage = new JTextArea(messageInfo.getOriginalFileName() + "\n" + messageInfo.getFileSize() + " MB");
@@ -350,11 +372,31 @@ public class HomePage extends JPanel {
 
                     });
 
+                    JButton deleteBtn = new JButton("Delete");
+                    deleteBtn.addActionListener(e->{
+                        try{
+                            Socket deleteMessageSocket = new Socket(AppConstants.SERVER_HOST, AppConstants.PORT);
+                            OutputStream outputStream = deleteMessageSocket.getOutputStream();
+                            ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                            Integer deleteOption = 12;
+                            objectOutputStream.writeObject(deleteOption);
+                            objectOutputStream.writeObject(messageInfo);
+                            deleteMessageSocket.close();
+                            objectOutputStream.close();
+                        } catch (UnknownHostException ex) {
+                            throw new RuntimeException(ex);
+                        } catch (IOException ex) {
+                            throw new RuntimeException(ex);
+                        }
+
+                    });
+
                     messageContainer.setPreferredSize(new Dimension(600, 100));
                     messageContainer.setLayout(new FlowLayout());
                     messageContainer.add(username);
                     messageContainer.add(messageScroll);
                     messageContainer.add(downloadBtn);
+                    messageContainer.add(deleteBtn);
                     messagesContainer.add(messageContainer);
                 }
             }

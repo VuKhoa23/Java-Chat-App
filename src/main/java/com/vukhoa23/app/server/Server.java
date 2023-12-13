@@ -321,6 +321,7 @@ public class Server {
                                             rs.getInt("is_file"),
                                             rs.getString("original_file_name"),
                                             rs.getString("generated_file_name"));
+                                    messageInfo.setId(rs.getInt("id"));
                                     if (messageInfo.getIsFile() == 0) {
                                         messageInfo.setFileSize(0);
                                     } else {
