@@ -1,6 +1,5 @@
 package com.vukhoa23.app.server;
 
-import com.vukhoa23.app.client.entity.*;
 import com.vukhoa23.app.entity.*;
 import com.vukhoa23.utils.DbUtils;
 
@@ -283,6 +282,7 @@ public class Server {
                                             rs.getInt("is_file"),
                                             rs.getString("original_file_name"),
                                             rs.getString("generated_file_name"));
+                                    messageInfo.setId(rs.getInt("id"));
                                     if (messageInfo.getIsFile() == 0) {
                                         messageInfo.setFileSize(0);
                                     } else {
@@ -339,7 +339,7 @@ public class Server {
                             }
                             // create a group and return its ID
                         } else if (option == 8) {
-                            try{
+                            try {
                                 String groupName = (String) objectInputStream.readObject();
                                 Connection connection = DbUtils.getConnection();
                                 PreparedStatement createGroup = connection.prepareStatement(
@@ -363,9 +363,8 @@ public class Server {
                             } catch (SQLException e) {
                                 throw new RuntimeException(e);
                             }
-                        }
-                        else if(option == 9){
-                            try{
+                        } else if (option == 9) {
+                            try {
                                 String theUser = (String) objectInputStream.readObject();
                                 Integer groupId = (Integer) objectInputStream.readObject();
 
@@ -380,9 +379,8 @@ public class Server {
                             } catch (SQLException e) {
                                 throw new RuntimeException(e);
                             }
-                        }
-                        else if (option == 10){
-                            try{
+                        } else if (option == 10) {
+                            try {
                                 String username = (String) objectInputStream.readObject();
                                 Connection connection = DbUtils.getConnection();
                                 PreparedStatement stmt = connection.prepareStatement("SELECT * FROM account WHERE username=?");
@@ -407,8 +405,9 @@ public class Server {
                                 throw new RuntimeException(e);
                             }
                         }
-                        else if (option == 11){
-                            try{
+                        // add new account
+                        else if (option == 11) {
+                            try {
                                 AccountInfo accountInfo = (AccountInfo) objectInputStream.readObject();
                                 Connection connection = DbUtils.getConnection();
                                 String createQuery = "INSERT INTO ACCOUNT VALUES(?, ?)";
@@ -417,6 +416,30 @@ public class Server {
                                 createStmt.setString(2, accountInfo.getPassword());
                                 createStmt.executeUpdate();
                                 socket.close();
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        } else if (option == 12) {
+                            try{
+                                MessageInfo messageInfo = (MessageInfo) objectInputStream.readObject();
+                                Connection connection = DbUtils.getConnection();
+                                PreparedStatement deleteStmt = connection.prepareStatement(
+                                        "DELETE FROM chat_history WHERE id=?"
+                                );
+                                deleteStmt.setInt(1, messageInfo.getId());
+                                deleteStmt.executeUpdate();
+                                socket.close();
+
+                                connectedSocket.forEach((connected) -> {
+                                    try {
+                                        OutputStream outputStream = connected.getSocket().getOutputStream();
+                                        // create a data output stream from the output stream so we can send data through it
+                                        ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
+                                        objectOutputStream.writeObject(messageInfo);
+                                    } catch (IOException err) {
+                                        throw new RuntimeException("Error when send messages to connected clients");
+                                    }
+                                });
                             } catch (SQLException e) {
                                 throw new RuntimeException(e);
                             }
