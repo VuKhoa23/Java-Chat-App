@@ -20,7 +20,7 @@ public class LoginRegisterForm extends JPanel {
             JLabel usernameLbl = new JLabel("Username");
             usernameLbl.setBounds(20, 10, 80, 30);
 
-            JTextField passwordInp = new JTextField();
+            JPasswordField passwordInp = new JPasswordField();
             passwordInp.setBounds(20, 50, 150, 30);
             JLabel passwordLbl = new JLabel("Password");
             passwordLbl.setBounds(20, 50, 80, 30);

@@ -16,7 +16,11 @@ public class Server {
 
     public static ArrayList<OnlineUserInfo> onlineUserInfos = new ArrayList<>();
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) {
+        new ServerFrame();
+    }
+
+    public static void serverFunctionalities() throws IOException, InterruptedException {
         ServerSocket ss = new ServerSocket(7777);
         System.out.println("Running on " + InetAddress.getLocalHost().getHostAddress() + ":" + AppConstants.PORT);
         while (true) {
@@ -66,7 +70,7 @@ public class Server {
                             Object receivedObject = objectInputStream.readObject();
                             if (receivedObject instanceof MessageInfo) {
                                 MessageInfo messageInfo = (MessageInfo) receivedObject;
-                                if (messageInfo.getMessage().equals("quit")) {
+                                if (messageInfo.quit == 1) {
                                     OutputStream quitOutputStream = socket.getOutputStream();
                                     // create a DataInputStream so we can read data from it.
                                     ObjectOutputStream quitObjectOutputStream = new ObjectOutputStream(quitOutputStream);

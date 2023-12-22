@@ -48,6 +48,21 @@ public class HomePage extends JPanel {
         });
         this.add(createGroupBtn);
 
+        // button to quit program
+        JButton quitBtn = new JButton("QUIT");
+        quitBtn.setBounds(820, 660, 150, 30);
+        quitBtn.addActionListener(e -> {
+            MessageInfo messageInfo = new MessageInfo();
+            messageInfo.quit = 1;
+            try {
+                objectOutputStream.writeObject(messageInfo);
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+
+        });
+        this.add(quitBtn);
+
         JTextArea messageInp = new JTextArea();
         JButton sendBtn = new JButton("Send");
         messageInp.setColumns(30);
@@ -96,7 +111,7 @@ public class HomePage extends JPanel {
                     Object object = objectInputStream.readObject();
                     if (object instanceof MessageInfo) {
                         MessageInfo messageInfo = (MessageInfo) object;
-                        if (messageInfo.getMessage().equals("quit")) {
+                        if (messageInfo.quit == 1) {
                             break;
                         }
                         if (ClientFrame.currentReceiver != null && messageInfo.getReceiver() != null && (messageInfo.getReceiver().equals(ClientFrame.username)

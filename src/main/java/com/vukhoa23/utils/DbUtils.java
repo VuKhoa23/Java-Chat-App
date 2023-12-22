@@ -5,14 +5,16 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DbUtils {
-    public static Connection getConnection(){
-        String url = "jdbc:mysql://localhost:3306/chatapp";
-        String username = "root";
-        String password = "anhkhoa0123";
+    public static String username;
+    public static String password;
+    public static String port;
+    public static Connection getConnection() throws SQLException{
+        String url = "jdbc:mysql://localhost:" + port + "/chatapp";
+
         try {
             return DriverManager.getConnection(url, username, password);
         } catch (SQLException e) {
-            throw new RuntimeException("Cannot connect to DB");
+            throw new SQLException("Cannot connect to DB");
         }
     }
 }

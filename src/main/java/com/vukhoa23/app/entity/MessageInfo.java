@@ -3,6 +3,7 @@ package com.vukhoa23.app.entity;
 import java.io.Serializable;
 
 public class MessageInfo implements Serializable {
+    public int quit = 0;
     int id;
     private String query;
     private String username;
@@ -120,6 +121,9 @@ public class MessageInfo implements Serializable {
 
     public void setFileSize(float fileSize) {
         this.fileSize = fileSize;
+    }
+
+    public MessageInfo() {
     }
 
     public MessageInfo(String username, String receiver, String message, String createdDate) {
